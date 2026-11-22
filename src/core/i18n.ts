@@ -28,13 +28,11 @@ const ZH_STRINGS: Record<string, string> = {
 
   'rog.section.profiles': '档位分配',
   'rog.profile.windows': 'Windows 档',
-  'rog.profile.mac': 'Mac 档',
   'rog.profile.default': '默认 配置文件',
   'rog.profile.named': '配置文件 {n}',
   'rog.action.switchToWindows': '切到 Windows 档',
-  'rog.action.switchToMac': '切到 Mac 档',
   'rog.section.profiles.footer':
-    '指定哪个板载档位代表哪台电脑。默认连上 Windows 时会自动切换到「Windows 档」（默认为 配置文件 1）。托盘右键菜单里也有同样的两个快捷开关，方便你在切回 Mac 之前手动切好。',
+    '指定键盘连上这台 Windows 电脑时要自动激活的板载配置文件（默认为 配置文件 1）。托盘右键菜单里也可以随时一键切换。',
 
   'rog.section.automation': '自动化',
   'rog.auto.title': '连上 Windows 时自动切换',
@@ -43,7 +41,7 @@ const ZH_STRINGS: Record<string, string> = {
   'rog.notify.denied':
     'XTools 的系统通知被关掉了，切档时不会有横幅提示。可在「Windows 设置 → 系统 → 通知」里打开。',
   'rog.section.automation.footer':
-    '键盘连上 Windows（无论 USB 拔插还是拨回 2.4G 接收器）都会被自动识别并还原为 Windows 档；若要切换回 Mac 档，建议在拨动键盘开关离开 Windows 前，点击上方按钮或系统托盘菜单切换。',
+    '键盘连上 Windows（无论 USB 拔插还是拨回 2.4G 接收器）都会被自动识别并还原为 Windows 档。',
 
   'general.title': '通用',
   'general.launchAtLogin': '登录时启动（最小化到托盘）',
@@ -91,13 +89,11 @@ const EN_STRINGS: Record<string, string> = {
 
   'rog.section.profiles': 'Profile Assignment',
   'rog.profile.windows': 'Windows Profile',
-  'rog.profile.mac': 'Mac Profile',
   'rog.profile.default': 'Default Profile',
   'rog.profile.named': 'Profile {n}',
   'rog.action.switchToWindows': 'Switch to Windows',
-  'rog.action.switchToMac': 'Switch to Mac',
   'rog.section.profiles.footer':
-    'Choose which on-board slot belongs to each computer. When the keyboard connects to Windows, it switches to the Windows slot (default: Profile 1). Both switches also live in the system tray menu so you can switch back before flipping the keyboard switch to Mac.',
+    'Choose the on-board profile to activate when the keyboard connects to Windows (default: Profile 1). You can also switch anytime from the system tray menu.',
 
   'rog.section.automation': 'Automation',
   'rog.auto.title': 'Auto-Switch on Windows Connect',
@@ -107,7 +103,7 @@ const EN_STRINGS: Record<string, string> = {
   'rog.notify.denied':
     'Notifications for XTools are turned off in Windows. Enable them in Windows Settings → System → Notifications.',
   'rog.section.automation.footer':
-    'XTools detects both USB arrival and 2.4G receiver reconnection and applies your Windows profile automatically. To switch back to your Mac profile before leaving Windows, use the button above or the tray menu.',
+    'XTools detects both USB arrival and 2.4G receiver reconnection and restores your Windows profile automatically.',
 
   'general.title': 'General',
   'general.launchAtLogin': 'Launch at Login (Minimized to Tray)',

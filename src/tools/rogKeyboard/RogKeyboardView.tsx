@@ -7,7 +7,6 @@ import {
   Bell,
   Globe,
   Keyboard,
-  Laptop,
   Monitor,
   RotateCcw,
 } from 'lucide-react';
@@ -210,33 +209,11 @@ export function RogKeyboardView({
           }
         />
 
-        <FormRow
-          leading={
-            <IconLabel
-              color="#0A84FF"
-              icon={<Laptop size={14} strokeWidth={2.1} />}
-              title={i18n.t('rog.profile.mac')}
-            />
-          }
-          trailing={
-            <SelectControl
-              value={rogState.mac_profile}
-              options={profileOptions}
-              onChange={(slot) => void updateSettings({ mac_profile: slot })}
-            />
-          }
-        />
-
         <div className="flex items-center justify-end gap-2 px-3.5 py-2.5">
           <ActionButton
             label={i18n.t('rog.action.switchToWindows')}
             disabled={rogState.is_busy || !rogState.is_connected}
             onClick={() => void xtoolsApi.switchRogToWindows()}
-          />
-          <ActionButton
-            label={i18n.t('rog.action.switchToMac')}
-            disabled={rogState.is_busy || !rogState.is_connected}
-            onClick={() => void xtoolsApi.switchRogToMac()}
           />
         </div>
       </FormSection>

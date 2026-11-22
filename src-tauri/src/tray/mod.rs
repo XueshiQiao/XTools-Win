@@ -20,7 +20,6 @@ struct MainTrayItems {
   status_item: MenuItem<Wry>,
   battery_item: MenuItem<Wry>,
   to_windows_item: MenuItem<Wry>,
-  to_mac_item: MenuItem<Wry>,
   open_item: MenuItem<Wry>,
   quit_item: MenuItem<Wry>,
 }
@@ -30,7 +29,6 @@ struct BatteryTrayItems {
   profile_item: MenuItem<Wry>,
   refresh_item: MenuItem<Wry>,
   to_windows_item: MenuItem<Wry>,
-  to_mac_item: MenuItem<Wry>,
   open_item: MenuItem<Wry>,
   quit_item: MenuItem<Wry>,
 }
@@ -78,13 +76,6 @@ impl TrayController {
       true,
       None::<&str>,
     )?;
-    let to_mac_item = MenuItem::with_id(
-      app,
-      "rog_switch_mac",
-      Self::mac_action_text(is_zh),
-      true,
-      None::<&str>,
-    )?;
     let open_item = MenuItem::with_id(
       app,
       "open_main",
@@ -108,7 +99,6 @@ impl TrayController {
         &status_item,
         &main_battery_item,
         &to_windows_item,
-        &to_mac_item,
         &PredefinedMenuItem::separator(app)?,
         &open_item,
         &PredefinedMenuItem::separator(app)?,
@@ -129,7 +119,6 @@ impl TrayController {
       .on_menu_event(move |app_handle, event| {
         match event.id.as_ref() {
           "rog_switch_windows" | "bat_switch_windows" => rog_for_menu.switch_to_windows(),
-          "rog_switch_mac" | "bat_switch_mac" => rog_for_menu.switch_to_mac(),
           "bat_refresh" => rog_for_menu.refresh(),
           "open_main" | "bat_open_main" => Self::focus_main_window(app_handle),
           "quit" | "bat_quit" => app_handle.exit(0),
@@ -177,13 +166,6 @@ impl TrayController {
       true,
       None::<&str>,
     )?;
-    let bat_mac_item = MenuItem::with_id(
-      app,
-      "bat_switch_mac",
-      Self::mac_action_text(is_zh),
-      true,
-      None::<&str>,
-    )?;
     let bat_open_item = MenuItem::with_id(
       app,
       "bat_open_main",
@@ -207,7 +189,6 @@ impl TrayController {
         &PredefinedMenuItem::separator(app)?,
         &bat_refresh_item,
         &bat_windows_item,
-        &bat_mac_item,
         &PredefinedMenuItem::separator(app)?,
         &bat_open_item,
         &bat_quit_item,
@@ -248,7 +229,6 @@ impl TrayController {
         status_item,
         battery_item: main_battery_item,
         to_windows_item,
-        to_mac_item,
         open_item,
         quit_item,
       }),
@@ -257,7 +237,6 @@ impl TrayController {
         profile_item: bat_profile_item,
         refresh_item: bat_refresh_item,
         to_windows_item: bat_windows_item,
-        to_mac_item: bat_mac_item,
         open_item: bat_open_item,
         quit_item: bat_quit_item,
       }),
@@ -275,7 +254,6 @@ impl TrayController {
       let _ = items.status_item.set_text(&profile_text);
       let _ = items.battery_item.set_text(&battery_text);
       let _ = items.to_windows_item.set_text(Self::windows_action_text(is_zh));
-      let _ = items.to_mac_item.set_text(Self::mac_action_text(is_zh));
       let _ = items.open_item.set_text(Self::open_text(is_zh));
       let _ = items.quit_item.set_text(Self::quit_text(is_zh));
     }
@@ -285,7 +263,6 @@ impl TrayController {
       let _ = items.profile_item.set_text(&profile_text);
       let _ = items.refresh_item.set_text(Self::refresh_battery_text(is_zh));
       let _ = items.to_windows_item.set_text(Self::windows_action_text(is_zh));
-      let _ = items.to_mac_item.set_text(Self::mac_action_text(is_zh));
       let _ = items.open_item.set_text(Self::open_text(is_zh));
       let _ = items.quit_item.set_text(Self::quit_text(is_zh));
     }
@@ -429,10 +406,6 @@ impl TrayController {
 
   fn windows_action_text(is_zh: bool) -> &'static str {
     if is_zh { "切到 Windows 档" } else { "Switch to Windows Profile" }
-  }
-
-  fn mac_action_text(is_zh: bool) -> &'static str {
-    if is_zh { "切到 Mac 档" } else { "Switch to Mac Profile" }
   }
 
   fn open_text(is_zh: bool) -> &'static str {

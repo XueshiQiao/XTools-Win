@@ -23,14 +23,12 @@ export interface RogKeyboardSnapshot {
   error_message: string | null;
   notifications_authorized: boolean;
   windows_profile: number;
-  mac_profile: number;
   auto_switch_enabled: boolean;
   sound_enabled: boolean;
 }
 
 export interface RogSettingsPatch {
   windows_profile?: number;
-  mac_profile?: number;
   auto_switch_enabled?: boolean;
   sound_enabled?: boolean;
 }

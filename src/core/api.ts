@@ -22,10 +22,6 @@ export class XToolsApi {
     await invoke('rog_switch_to_windows');
   }
 
-  public async switchRogToMac(): Promise<void> {
-    await invoke('rog_switch_to_mac');
-  }
-
   public async updateRogSettings(patch: RogSettingsPatch): Promise<RogKeyboardSnapshot> {
     return invoke<RogKeyboardSnapshot>('rog_update_settings', { patch });
   }

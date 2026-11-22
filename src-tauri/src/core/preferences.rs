@@ -12,8 +12,6 @@ const LOG: FileLog = FileLog::new("Preferences");
 pub struct RogKeyboardConfig {
   /// Default Windows profile slot: 1 ("配置文件 1").
   pub windows_profile: usize,
-  /// Default Mac profile slot: 6 ("默认 配置文件" on a 6-profile Falcata).
-  pub mac_profile: usize,
   pub auto_switch_enabled: bool,
   pub sound_enabled: bool,
 }
@@ -22,7 +20,6 @@ impl Default for RogKeyboardConfig {
   fn default() -> Self {
     Self {
       windows_profile: 1,
-      mac_profile: 6,
       auto_switch_enabled: true,
       sound_enabled: true,
     }
@@ -35,9 +32,6 @@ impl RogKeyboardConfig {
   pub fn sanitize(&mut self) {
     if self.windows_profile == 0 {
       self.windows_profile = 1;
-    }
-    if self.mac_profile == 0 {
-      self.mac_profile = 6;
     }
   }
 }
@@ -179,13 +173,12 @@ mod tests {
   }
 
   #[test]
-  fn defaults_use_windows_profile_1_and_mac_default_6() {
+  fn defaults_use_windows_profile_1() {
     let path = temp_config_path("defaults");
     let _ = fs::remove_file(&path);
     let store = PreferencesStore::with_path(path.clone());
     let cfg = store.get();
     assert_eq!(cfg.rog_keyboard.windows_profile, 1);
-    assert_eq!(cfg.rog_keyboard.mac_profile, 6);
     assert!(cfg.rog_keyboard.auto_switch_enabled);
     assert!(cfg.rog_keyboard.sound_enabled);
     assert_eq!(cfg.language, None);
@@ -199,7 +192,6 @@ mod tests {
       "language": "zh-Hans",
       "rog_keyboard": {
         "windows_profile": 0,
-        "mac_profile": 0,
         "auto_switch_enabled": false,
         "sound_enabled": true
       }
@@ -208,7 +200,6 @@ mod tests {
     let store = PreferencesStore::with_path(path.clone());
     let cfg = store.get();
     assert_eq!(cfg.rog_keyboard.windows_profile, 1);
-    assert_eq!(cfg.rog_keyboard.mac_profile, 6);
     assert!(!cfg.rog_keyboard.auto_switch_enabled);
     assert_eq!(cfg.language.as_deref(), Some("zh-Hans"));
     let _ = fs::remove_file(&path);

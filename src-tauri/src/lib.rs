@@ -71,11 +71,6 @@ fn rog_switch_to_windows(state: State<'_, Arc<AppRuntimeState>>) {
 }
 
 #[tauri::command]
-fn rog_switch_to_mac(state: State<'_, Arc<AppRuntimeState>>) {
-  state.rog_service.switch_to_mac();
-}
-
-#[tauri::command]
 fn rog_update_settings(
   state: State<'_, Arc<AppRuntimeState>>,
   patch: RogSettingsPatch,
@@ -218,7 +213,6 @@ pub fn run() {
       rog_get_state,
       rog_refresh,
       rog_switch_to_windows,
-      rog_switch_to_mac,
       rog_update_settings,
       app_get_general_settings,
       app_set_launch_at_login,

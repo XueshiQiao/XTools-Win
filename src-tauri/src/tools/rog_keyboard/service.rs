@@ -19,7 +19,6 @@ pub enum SwitchReason {
   AutoReturn,
   StartupAuto,
   Windows,
-  Mac,
 }
 
 impl SwitchReason {
@@ -28,14 +27,8 @@ impl SwitchReason {
   }
 
   fn role_label(self, is_zh: bool) -> &'static str {
-    match self {
-      Self::AutoReturn | Self::StartupAuto | Self::Windows => {
-        if is_zh { "Windows 档" } else { "Windows Profile" }
-      }
-      Self::Mac => {
-        if is_zh { "Mac 档" } else { "Mac Profile" }
-      }
-    }
+    let _ = self;
+    if is_zh { "Windows 档" } else { "Windows Profile" }
   }
 }
 
@@ -53,7 +46,6 @@ pub struct RogKeyboardSnapshot {
   pub error_message: Option<String>,
   pub notifications_authorized: bool,
   pub windows_profile: usize,
-  pub mac_profile: usize,
   pub auto_switch_enabled: bool,
   pub sound_enabled: bool,
 }
@@ -74,7 +66,6 @@ impl RogKeyboardSnapshot {
       error_message: None,
       notifications_authorized: true,
       windows_profile: cfg.windows_profile,
-      mac_profile: cfg.mac_profile,
       auto_switch_enabled: cfg.auto_switch_enabled,
       sound_enabled: cfg.sound_enabled,
     }
@@ -84,7 +75,6 @@ impl RogKeyboardSnapshot {
 #[derive(Debug, Clone, Deserialize)]
 pub struct RogSettingsPatch {
   pub windows_profile: Option<usize>,
-  pub mac_profile: Option<usize>,
   pub auto_switch_enabled: Option<bool>,
   pub sound_enabled: Option<bool>,
 }
@@ -158,21 +148,10 @@ impl RogKeyboardService {
     });
   }
 
-  pub fn switch_to_mac(&self) {
-    let slot = self.prefs.get().rog_keyboard.mac_profile;
-    self.enqueue(WorkItem::ApplyProfile {
-      slot,
-      reason: SwitchReason::Mac,
-    });
-  }
-
   pub fn update_settings(&self, patch: RogSettingsPatch) -> Result<RogKeyboardSnapshot, String> {
     let updated_cfg = self.prefs.update(|cfg| {
       if let Some(w) = patch.windows_profile {
         cfg.rog_keyboard.windows_profile = w.max(1);
-      }
-      if let Some(m) = patch.mac_profile {
-        cfg.rog_keyboard.mac_profile = m.max(1);
       }
       if let Some(auto) = patch.auto_switch_enabled {
         cfg.rog_keyboard.auto_switch_enabled = auto;
@@ -184,7 +163,6 @@ impl RogKeyboardService {
 
     let snap = self.mutate_snapshot(|s| {
       s.windows_profile = updated_cfg.rog_keyboard.windows_profile;
-      s.mac_profile = updated_cfg.rog_keyboard.mac_profile;
       s.auto_switch_enabled = updated_cfg.rog_keyboard.auto_switch_enabled;
       s.sound_enabled = updated_cfg.rog_keyboard.sound_enabled;
     });

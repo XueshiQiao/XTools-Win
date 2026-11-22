@@ -30,7 +30,7 @@ export function AboutPage({ i18n, version }: AboutPageProps) {
         />
       ),
       title: i18n.t('about.github'),
-      url: 'https://github.com/XueshiQiao/XTools',
+      url: 'https://github.com/XueshiQiao/XTools-Win',
     },
     {
       key: 'x',

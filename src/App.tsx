@@ -26,7 +26,6 @@ const DEFAULT_ROG_STATE: RogKeyboardSnapshot = {
   error_message: null,
   notifications_authorized: true,
   windows_profile: 1,
-  mac_profile: 6,
   auto_switch_enabled: true,
   sound_enabled: true,
 };
