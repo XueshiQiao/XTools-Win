@@ -10,12 +10,14 @@ import {
   NagaSnapshot,
   RogKeyboardSnapshot,
   SidebarSelection,
+  UsbInspectorSnapshot,
 } from './core/types';
 import { AboutPage } from './pages/AboutPage';
 import { GeneralPage } from './pages/GeneralPage';
 import { hyperCapslockTool } from './tools/hyperCapslock/hyperCapslockTool';
 import { razerNagaTool } from './tools/razerNaga/razerNagaTool';
 import { rogKeyboardTool } from './tools/rogKeyboard/rogKeyboardTool';
+import { usbInspectorTool } from './tools/usbInspector/usbInspectorTool';
 
 const DEFAULT_ROG_STATE: RogKeyboardSnapshot = {
   is_connected: false,
@@ -62,6 +64,15 @@ const DEFAULT_HYPER_STATE: HyperCapslockSnapshot = {
   mappings: [],
 };
 
+const DEFAULT_USB_STATE: UsbInspectorSnapshot = {
+  controllers: [],
+  diagnostics: [],
+  recent_events: [],
+  show_empty_ports: true,
+  is_scanning: false,
+  last_scan_time: null,
+};
+
 const DEFAULT_GENERAL: GeneralSettings = {
   launch_at_login: false,
   language: null,
@@ -72,7 +83,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
 
 export function App() {
   const registry = useMemo(
-    () => new ToolRegistry([rogKeyboardTool, razerNagaTool, hyperCapslockTool]),
+    () => new ToolRegistry([rogKeyboardTool, razerNagaTool, hyperCapslockTool, usbInspectorTool]),
     []
   );
   const [selection, setSelection] = useState<SidebarSelection>({
@@ -83,6 +94,7 @@ export function App() {
   const [rogState, setRogState] = useState<RogKeyboardSnapshot>(DEFAULT_ROG_STATE);
   const [nagaState, setNagaState] = useState<NagaSnapshot>(DEFAULT_NAGA_STATE);
   const [hyperState, setHyperState] = useState<HyperCapslockSnapshot>(DEFAULT_HYPER_STATE);
+  const [usbState, setUsbState] = useState<UsbInspectorSnapshot>(DEFAULT_USB_STATE);
   const [generalSettings, setGeneralSettings] =
     useState<GeneralSettings>(DEFAULT_GENERAL);
 
@@ -97,19 +109,21 @@ export function App() {
 
     const bootstrap = async () => {
       try {
-        const [initialRog, initialNaga, initialHyper, initialGeneral] = await Promise.all([
+        const [initialRog, initialNaga, initialHyper, initialUsb, initialGeneral] = await Promise.all([
           xtoolsApi.getRogState(),
           xtoolsApi.getNagaState(),
           xtoolsApi.getHyperState(),
+          xtoolsApi.getUsbState(),
           xtoolsApi.getGeneralSettings(),
         ]);
         if (!active) return;
         setRogState(initialRog);
         setNagaState(initialNaga);
         setHyperState(initialHyper);
+        setUsbState(initialUsb);
         setGeneralSettings(initialGeneral);
 
-        const [offRog, offNaga, offHyper] = await Promise.all([
+        const [offRog, offNaga, offHyper, offUsb] = await Promise.all([
           xtoolsApi.onRogStateChanged((next) => {
             if (active) setRogState(next);
           }),
@@ -119,13 +133,17 @@ export function App() {
           xtoolsApi.onHyperStateChanged((next) => {
             if (active) setHyperState(next);
           }),
+          xtoolsApi.onUsbStateChanged((next) => {
+            if (active) setUsbState(next);
+          }),
         ]);
         if (active) {
-          unlisteners.push(offRog, offNaga, offHyper);
+          unlisteners.push(offRog, offNaga, offHyper, offUsb);
         } else {
           offRog();
           offNaga();
           offHyper();
+          offUsb();
         }
       } catch (err) {
         console.error('Failed to bootstrap XTools state:', err);
@@ -152,14 +170,23 @@ export function App() {
 
   const isRogPage = selection.kind === 'tool' && selection.id === 'rog-keyboard';
   const isNagaPage = selection.kind === 'tool' && selection.id === 'razer-naga';
-  const showRefresh = isRogPage || isNagaPage;
-  const isBusy = isRogPage ? rogState.is_busy : isNagaPage ? nagaState.is_busy : false;
+  const isUsbPage = selection.kind === 'tool' && selection.id === 'usb-inspector';
+  const showRefresh = isRogPage || isNagaPage || isUsbPage;
+  const isBusy = isRogPage
+    ? rogState.is_busy
+    : isNagaPage
+      ? nagaState.is_busy
+      : isUsbPage
+        ? usbState.is_scanning
+        : false;
 
   const handleRefresh = () => {
     if (isRogPage) {
       void xtoolsApi.refreshRog();
     } else if (isNagaPage) {
       void xtoolsApi.refreshNaga();
+    } else if (isUsbPage) {
+      void xtoolsApi.refreshUsb();
     }
   };
 
@@ -195,6 +222,8 @@ export function App() {
                 onUpdateNagaState: setNagaState,
                 hyperState,
                 onUpdateHyperState: setHyperState,
+                usbState,
+                onUpdateUsbState: setUsbState,
               })
             : null}
 

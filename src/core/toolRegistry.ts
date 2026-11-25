@@ -4,6 +4,7 @@ import {
   HyperCapslockSnapshot,
   NagaSnapshot,
   RogKeyboardSnapshot,
+  UsbInspectorSnapshot,
 } from './types';
 
 export type ToolGroup = 'devices' | 'utilities';
@@ -16,6 +17,8 @@ export interface ToolRenderProps {
   onUpdateNagaState: (next: NagaSnapshot) => void;
   hyperState: HyperCapslockSnapshot;
   onUpdateHyperState: (next: HyperCapslockSnapshot) => void;
+  usbState: UsbInspectorSnapshot;
+  onUpdateUsbState: (next: UsbInspectorSnapshot) => void;
 }
 
 export interface ToolModule {

@@ -190,6 +190,72 @@ export interface NagaSnapshot {
 export type EffectiveLanguage = 'zh-Hans' | 'en';
 export type LanguagePreference = EffectiveLanguage | null;
 
+export type UsbControllerRole = 'cpu_direct' | 'chipset' | 'discrete' | 'unknown';
+export type UsbSpeed = 'low' | 'full' | 'high' | 'super' | 'super_plus' | 'unknown';
+export type UsbPortStatus = 'connected' | 'empty' | 'error';
+export type UsbDiagnosticSeverity = 'error' | 'warning' | 'info';
+export type UsbEventKind = 'arrived' | 'removed' | 'surprise_removed';
+
+export interface UsbPortNode {
+  port_key: string;
+  port_number: number;
+  companion_port: number | null;
+  is_type_c: boolean;
+  is_user_connectable: boolean;
+  max_speed: UsbSpeed;
+  current_speed: UsbSpeed | null;
+  status: UsbPortStatus;
+  device_name: string | null;
+  manufacturer: string | null;
+  vendor_id: number | null;
+  product_id: number | null;
+  instance_id: string | null;
+  problem_code: number | null;
+  problem_desc: string | null;
+  max_power_ma: number | null;
+  is_hub: boolean;
+  hub_children: UsbPortNode[];
+  disconnect_count_24h: number;
+  custom_label: string | null;
+  recently_changed: boolean;
+}
+
+export interface UsbControllerNode {
+  id: string;
+  name: string;
+  vendor_id: number;
+  device_id: number;
+  role: UsbControllerRole;
+  role_reason: string;
+  ports: UsbPortNode[];
+}
+
+export interface UsbDiagnosticHint {
+  severity: UsbDiagnosticSeverity;
+  title_zh: string;
+  title_en: string;
+  detail_zh: string;
+  detail_en: string;
+  port_key: string | null;
+}
+
+export interface UsbLiveEvent {
+  timestamp: string;
+  kind: UsbEventKind;
+  device_name: string;
+  instance_id: string;
+  port_key: string | null;
+}
+
+export interface UsbInspectorSnapshot {
+  controllers: UsbControllerNode[];
+  diagnostics: UsbDiagnosticHint[];
+  recent_events: UsbLiveEvent[];
+  show_empty_ports: boolean;
+  is_scanning: boolean;
+  last_scan_time: string | null;
+}
+
 export interface GeneralSettings {
   launch_at_login: boolean;
   language: LanguagePreference;

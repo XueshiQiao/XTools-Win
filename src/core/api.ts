@@ -15,6 +15,7 @@ import {
   RogKeyboardSnapshot,
   RogSettingsPatch,
   RunningProcessInfo,
+  UsbInspectorSnapshot,
 } from './types';
 
 export class XToolsApi {
@@ -149,6 +150,33 @@ export class XToolsApi {
     handler: (snapshot: NagaSnapshot) => void
   ): Promise<UnlistenFn> {
     return listen<NagaSnapshot>('razer-naga://state-changed', (event) => {
+      handler(event.payload);
+    });
+  }
+
+  public async getUsbState(): Promise<UsbInspectorSnapshot> {
+    return invoke<UsbInspectorSnapshot>('usb_get_state');
+  }
+
+  public async refreshUsb(): Promise<void> {
+    await invoke('usb_refresh');
+  }
+
+  public async setUsbPortLabel(
+    portKey: string,
+    label: string
+  ): Promise<UsbInspectorSnapshot> {
+    return invoke<UsbInspectorSnapshot>('usb_set_port_label', { portKey, label });
+  }
+
+  public async setUsbShowEmptyPorts(show: boolean): Promise<UsbInspectorSnapshot> {
+    return invoke<UsbInspectorSnapshot>('usb_set_show_empty_ports', { show });
+  }
+
+  public async onUsbStateChanged(
+    handler: (snapshot: UsbInspectorSnapshot) => void
+  ): Promise<UnlistenFn> {
+    return listen<UsbInspectorSnapshot>('usb-inspector://state-changed', (event) => {
       handler(event.payload);
     });
   }

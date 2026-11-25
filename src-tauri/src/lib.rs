@@ -23,12 +23,16 @@ use tools::razer_naga::service::{NagaService, NagaSnapshot, NagaTool};
 use tools::rog_keyboard::service::{
   RogKeyboardService, RogKeyboardSnapshot, RogKeyboardTool, RogSettingsPatch,
 };
+use tools::usb_inspector::service::{
+  UsbInspectorService, UsbInspectorSnapshot, UsbInspectorTool,
+};
 use tray::TrayController;
 
 const LOG: FileLog = FileLog::new("App");
 const ROG_STATE_EVENT: &str = "rog-keyboard://state-changed";
 const NAGA_STATE_EVENT: &str = "razer-naga://state-changed";
 const HYPER_STATE_EVENT: &str = "hyper-capslock://state-changed";
+const USB_STATE_EVENT: &str = "usb-inspector://state-changed";
 
 pub struct AppRuntimeState {
   pub prefs: Arc<PreferencesStore>,
@@ -37,6 +41,7 @@ pub struct AppRuntimeState {
   pub rog_service: Arc<RogKeyboardService>,
   pub naga_service: Arc<NagaService>,
   pub hyper_service: Arc<HyperCapslockService>,
+  pub usb_service: Arc<UsbInspectorService>,
   pub tray: Arc<TrayController>,
   pub registry: Arc<ToolRegistry>,
   pub version: String,
@@ -249,6 +254,33 @@ fn naga_set_polling_rate(
 }
 
 #[tauri::command]
+fn usb_get_state(state: State<'_, Arc<AppRuntimeState>>) -> UsbInspectorSnapshot {
+  state.usb_service.snapshot()
+}
+
+#[tauri::command]
+fn usb_refresh(state: State<'_, Arc<AppRuntimeState>>) {
+  state.usb_service.refresh();
+}
+
+#[tauri::command]
+fn usb_set_port_label(
+  state: State<'_, Arc<AppRuntimeState>>,
+  port_key: String,
+  label: String,
+) -> Result<UsbInspectorSnapshot, String> {
+  state.usb_service.set_port_label(port_key, label)
+}
+
+#[tauri::command]
+fn usb_set_show_empty_ports(
+  state: State<'_, Arc<AppRuntimeState>>,
+  show: bool,
+) -> Result<UsbInspectorSnapshot, String> {
+  state.usb_service.set_show_empty_ports(show)
+}
+
+#[tauri::command]
 fn app_get_general_settings(state: State<'_, Arc<AppRuntimeState>>) -> GeneralSettingsPayload {
   state.build_general_settings()
 }
@@ -337,11 +369,13 @@ pub fn run() {
         Arc::clone(&keyboard_hook),
         Arc::clone(&notifier),
       );
+      let usb_service = UsbInspectorService::new(Arc::clone(&prefs));
 
       let tools: Vec<Arc<dyn XTool>> = vec![
         Arc::new(RogKeyboardTool::new(Arc::clone(&rog_service))),
         Arc::new(NagaTool::new(Arc::clone(&naga_service))),
         Arc::new(HyperCapslockTool::new(Arc::clone(&hyper_service))),
+        Arc::new(UsbInspectorTool::new(Arc::clone(&usb_service))),
       ];
       let registry = Arc::new(ToolRegistry::new(tools));
 
@@ -387,6 +421,11 @@ pub fn run() {
         let _ = app_hyper.emit(HYPER_STATE_EVENT, snap);
       });
 
+      let app_usb: AppHandle = app.handle().clone();
+      usb_service.set_observer(move |snap| {
+        let _ = app_usb.emit(USB_STATE_EVENT, snap);
+      });
+
       let version = app.package_info().version.to_string();
       let runtime = Arc::new(AppRuntimeState {
         prefs,
@@ -395,6 +434,7 @@ pub fn run() {
         rog_service,
         naga_service,
         hyper_service,
+        usb_service,
         tray,
         registry: Arc::clone(&registry),
         version,
@@ -449,6 +489,10 @@ pub fn run() {
       naga_reset_plate_defaults,
       naga_set_dpi_stages,
       naga_set_polling_rate,
+      usb_get_state,
+      usb_refresh,
+      usb_set_port_label,
+      usb_set_show_empty_ports,
       app_get_general_settings,
       app_set_launch_at_login,
       app_set_language,
