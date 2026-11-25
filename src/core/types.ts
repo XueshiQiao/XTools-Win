@@ -115,7 +115,15 @@ export interface HyperCapslockSnapshot {
 export type NagaLink = 'wired' | 'wireless24g';
 export type NagaChargingState = 'discharging' | 'charging' | 'full' | 'unknown';
 export type NagaPlateLayout = 'two_button' | 'six_button' | 'twelve_button';
-export type NagaRecordMode = 'target' | 'sentinel';
+export type NagaMouseButton =
+  | 'left'
+  | 'right'
+  | 'middle'
+  | 'back'
+  | 'forward'
+  | 'scroll_up'
+  | 'scroll_down';
+export type NagaDpiOp = 'up' | 'down' | 'cycle_up' | 'cycle_down';
 
 export interface NagaBatteryInfo {
   percent: number;
@@ -127,29 +135,39 @@ export interface NagaDpi {
   y: number;
 }
 
-export interface NagaButtonMapping {
+export interface NagaDpiStages {
+  active_stage: number;
+  stages: NagaDpi[];
+}
+
+export interface NagaProfileInfo {
+  max_profiles: number;
+  active_profile: number;
+  available_profiles: number[];
+}
+
+export type NagaHardwareAction =
+  | { kind: 'disabled' }
+  | { kind: 'mouse'; button: NagaMouseButton }
+  | {
+      kind: 'keyboard';
+      vk: number;
+      hid_code: number;
+      ctrl: boolean;
+      shift: boolean;
+      alt: boolean;
+      win: boolean;
+    }
+  | { kind: 'dpi'; op: NagaDpiOp }
+  | { kind: 'profile'; op: number }
+  | { kind: 'media'; usage: number }
+  | { kind: 'hypershift' }
+  | { kind: 'raw'; action_type: number; data: number[] };
+
+export interface NagaHardwareButton {
   index: number;
-  sentinel_vk: number;
-  target: KeyShortcut | null;
-  enabled: boolean;
-}
-
-export interface NagaRecordingState {
-  button_index: number;
-  mode: NagaRecordMode;
-}
-
-export interface NagaCapturedEvent {
-  id: number;
-  vk: number;
-  ctrl: boolean;
-  alt: boolean;
-  shift: boolean;
-  win: boolean;
-  display: string;
-  detail: string;
-  timestamp_ms: number;
-  remapped_to: string | null;
+  button_id: number;
+  action: NagaHardwareAction;
 }
 
 export interface NagaSnapshot {
@@ -159,13 +177,14 @@ export interface NagaSnapshot {
   firmware_version: string | null;
   battery: NagaBatteryInfo | null;
   dpi: NagaDpi | null;
-  is_busy: boolean;
-  error_message: string | null;
-  enabled: boolean;
+  dpi_stages: NagaDpiStages | null;
+  polling_rate_hz: number | null;
+  profile_info: NagaProfileInfo | null;
   plate_layout: NagaPlateLayout;
-  mappings: NagaButtonMapping[];
-  recording: NagaRecordingState | null;
-  captures: NagaCapturedEvent[];
+  buttons: NagaHardwareButton[];
+  is_busy: boolean;
+  status_message: string | null;
+  error_message: string | null;
 }
 
 export type EffectiveLanguage = 'zh-Hans' | 'en';

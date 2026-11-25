@@ -1,6 +1,7 @@
 import {
   EffectiveLanguage,
   KeyShortcut,
+  NagaHardwareAction,
   NagaLink,
   NagaPlateLayout,
   RogLink,
@@ -55,33 +56,64 @@ const ZH_STRINGS: Record<string, string> = {
   'naga.status.connected': '已连接',
   'naga.status.disconnected': '未连接',
   'naga.status.disconnected.hint':
-    '未检测到 Razer Naga V3 Pro（USB 有线或 2.4G 接收器）。请确认鼠标已开机，或点击右上角刷新重试；若通过蓝牙连接则无法读取电量，但侧键重映射仍可正常工作。',
+    '未检测到 Razer Naga V3 Pro（USB 有线或 2.4G 接收器）。读取和修改板载配置需要通过 USB 或 2.4G 连接；一旦写入板载内存，在蓝牙模式、其他电脑或反作弊游戏中都能原生生效。',
   'naga.status.battery': '电池电量',
   'naga.battery.charging': '充电中',
   'naga.battery.full': '已充满',
   'naga.status.link': '连接方式',
+  'naga.status.activeProfile': '当前板载档',
   'naga.status.dpi': '当前 DPI',
+  'naga.status.pollingRate': '轮询率',
   'naga.status.firmware': '固件版本',
   'naga.link.wired': 'USB 有线',
   'naga.link.wireless24g': '2.4G 无线',
-  'naga.section.mappings': '侧键自定义映射',
-  'naga.enabled.title': '启用侧键重映射',
-  'naga.enabled.subtitle': '拦截并替换侧键触发的默认按键，将对应快捷键发送给当前应用。',
+
+  'naga.section.profileDpi': '板载配置文件与灵敏度',
+  'naga.profile.title': '板载配置槽位',
+  'naga.profile.slot': '配置 {n}',
+  'naga.profile.deleteHint': '删除配置槽位 {n}',
+  'naga.dpi.title': 'DPI 灵敏度档位',
+  'naga.dpi.stage': '档位 {n}',
+  'naga.dpi.addStage': '新增档位',
+  'naga.dpi.removeStage': '删除档位',
+  'naga.dpi.apply': '应用 DPI',
+  'naga.polling.title': '回报率 / 轮询率',
+  'naga.profileDpi.footer':
+    '支持 1–5 号板载配置槽位（圆点颜色对应鼠标底部指示灯）。点击未创建的槽位会自动创建并切换；DPI 与轮询率修改后直接写入鼠标硬件板载内存。',
+
+  'naga.section.mappings': '侧面板硬件按键映射',
   'naga.plate.title': '侧面板按键布局',
   'naga.plate.two_button': '2 键面板',
   'naga.plate.six_button': '6 键面板',
   'naga.plate.twelve_button': '12 键面板',
-  'naga.sentinel.hint': '点击修改触发键',
-  'naga.sentinel.recording': '按下触发键…',
-  'naga.recorder.empty': '点击录制快捷键',
-  'naga.recorder.recording': '请按下快捷键 (Esc 取消)…',
-  'naga.recorder.clear': '清除映射',
+  'naga.plate.reset': '恢复出厂默认',
+  'naga.bind.recording': '请按下键盘按键或组合键 (Esc 取消)…',
+  'naga.bind.empty': '未连接',
+  'naga.bind.unsupportedKey': '鼠标板载内存暂不支持映射该按键。',
+  'naga.action.disabled': '已禁用',
+  'naga.action.hypershift': 'Razer HyperShift',
+  'naga.action.profile': '切换配置文件',
+  'naga.action.mouse.left': '鼠标左键',
+  'naga.action.mouse.right': '鼠标右键',
+  'naga.action.mouse.middle': '鼠标中键',
+  'naga.action.mouse.back': '鼠标后退 (X1)',
+  'naga.action.mouse.forward': '鼠标前进 (X2)',
+  'naga.action.mouse.scroll_up': '滚轮向上',
+  'naga.action.mouse.scroll_down': '滚轮向下',
+  'naga.action.dpi.up': 'DPI 升高',
+  'naga.action.dpi.down': 'DPI 降低',
+  'naga.action.dpi.cycle_up': 'DPI 循环切换 (+)',
+  'naga.action.dpi.cycle_down': 'DPI 循环切换 (-)',
+  'naga.action.type.keyboard': '键盘按键…',
+  'naga.action.type.disabled': '禁用按键',
+  'naga.action.type.other': '其他硬件动作',
   'naga.mappings.footer':
-    '建议在雷云（Synapse）板载配置里将侧键 1–6 设为 F13–F18（12 键为 F13–F24），XTools 会拦截这些特殊功能键且不会与主键盘冲突；点左侧 F13 标签也可改为拦截其他触发键。',
-  'naga.section.monitor': '实时输入监听（Razer 设备）',
-  'naga.monitor.clear': '清空',
-  'naga.monitor.empty': '按下鼠标任意侧键，这里会显示实际发出的键值与拦截转换结果。',
-  'naga.monitor.remapped': '已转为 {target}',
+    '点击左侧映射标签后按下任意键盘按键（支持 Ctrl / Shift / Alt / Win 组合键），会通过 Razer HID 协议直接写入鼠标板载内存。写入后可完全退出雷云和 XTools，无后台键盘钩子、支持长按、且兼容反作弊游戏。',
+
+  'naga.section.test': '按键实测区',
+  'naga.test.placeholder': '点击此输入框，再按下鼠标侧键测试硬件实际输出…',
+  'naga.test.lastKey': '最近输入',
+  'naga.test.clear': '清空',
 
   'tool.hypercapslock.title': 'HyperCapslock',
   'hyper.section.service': '服务控制',
@@ -143,12 +175,12 @@ const ZH_STRINGS: Record<string, string> = {
   'hyper.importSuccess': '已导入 {count} 条映射规则。',
   'hyper.importFailed': '导入失败：{error}',
   'hyper.status.autoPaused': '已自动暂停',
-  'hyper.status.autoPausedBy': '检测到进程 {processes} 正在运行，HyperCapslock 已自动暂停；这些进程全部退出后会自动恢复。',
+  'hyper.status.autoPausedBy': '检测到进程 {processes} 正在运行，HyperCapslock 已自动暂停（已卸载底层键盘钩子）；这些进程全部退出后会自动恢复。',
   'hyper.autoPause.section': '进程自动暂停',
   'hyper.autoPause.footer':
-    '列表中的任一进程运行时，HyperCapslock 会自动暂停并弹出通知；所有进程都退出后自动恢复。若你本来就手动暂停了它，则不会被自动恢复。',
+    '列表中的任一进程运行时，HyperCapslock 会自动暂停并完全卸载键盘钩子，避免与游戏或反作弊冲突；所有进程都退出后自动恢复。若你本来就手动暂停了它，则不会被自动恢复。',
   'hyper.autoPause.enable.title': '启用进程自动暂停',
-  'hyper.autoPause.enable.subtitle': '检测到下列进程运行时自动暂停，进程结束后自动恢复。',
+  'hyper.autoPause.enable.subtitle': '检测到下列进程运行时自动暂停并卸载键盘钩子，进程结束后自动恢复。',
   'hyper.autoPause.sound.title': '通知带提示音',
   'hyper.autoPause.input.placeholder': '进程名，例如 steam.exe 或 cs2',
   'hyper.autoPause.add': '添加',
@@ -233,33 +265,64 @@ const EN_STRINGS: Record<string, string> = {
   'naga.status.connected': 'Connected',
   'naga.status.disconnected': 'Not Detected',
   'naga.status.disconnected.hint':
-    'Cannot reach Razer Naga V3 Pro over USB cable or 2.4G HyperSpeed dongle right now. Side-button remapping still works over Bluetooth, though battery telemetry requires USB or 2.4G.',
+    'Cannot reach Razer Naga V3 Pro over USB cable or 2.4G HyperSpeed dongle right now. Editing onboard memory requires USB or 2.4G, and saved bindings keep working over Bluetooth or without Synapse.',
   'naga.status.battery': 'Battery',
   'naga.battery.charging': 'Charging',
   'naga.battery.full': 'Full',
   'naga.status.link': 'Connection',
+  'naga.status.activeProfile': 'Active Profile',
   'naga.status.dpi': 'Active DPI',
+  'naga.status.pollingRate': 'Polling Rate',
   'naga.status.firmware': 'Firmware',
   'naga.link.wired': 'USB Wired',
   'naga.link.wireless24g': '2.4G Wireless',
-  'naga.section.mappings': 'Side-Button Mappings',
-  'naga.enabled.title': 'Enable Side-Button Remapping',
-  'naga.enabled.subtitle': 'Intercept configured side-button triggers and emit custom shortcuts globally.',
+
+  'naga.section.profileDpi': 'Onboard Profile & Sensitivity',
+  'naga.profile.title': 'Onboard Profile Slot',
+  'naga.profile.slot': 'Profile {n}',
+  'naga.profile.deleteHint': 'Delete Profile {n}',
+  'naga.dpi.title': 'DPI Sensitivity Stages',
+  'naga.dpi.stage': 'Stage {n}',
+  'naga.dpi.addStage': 'Add Stage',
+  'naga.dpi.removeStage': 'Remove Stage',
+  'naga.dpi.apply': 'Apply DPI',
+  'naga.polling.title': 'Polling Rate',
+  'naga.profileDpi.footer':
+    'Supports onboard Profile 1–5 (matching the bottom LED colors). Clicking an unused slot creates and activates it; DPI and polling rate changes write straight to mouse hardware memory.',
+
+  'naga.section.mappings': 'Side-Plate Onboard Keymap',
   'naga.plate.title': 'Side Plate Layout',
   'naga.plate.two_button': '2-Button Plate',
   'naga.plate.six_button': '6-Button Plate',
   'naga.plate.twelve_button': '12-Button Plate',
-  'naga.sentinel.hint': 'Click to change trigger key',
-  'naga.sentinel.recording': 'Press key…',
-  'naga.recorder.empty': 'Click to record shortcut',
-  'naga.recorder.recording': 'Press shortcut (Esc cancels)…',
-  'naga.recorder.clear': 'Clear shortcut',
+  'naga.plate.reset': 'Reset Defaults',
+  'naga.bind.recording': 'Press key or combo (Esc cancels)…',
+  'naga.bind.empty': 'Disconnected',
+  'naga.bind.unsupportedKey': 'That key is not supported for mouse onboard mapping.',
+  'naga.action.disabled': 'Disabled',
+  'naga.action.hypershift': 'Razer HyperShift',
+  'naga.action.profile': 'Switch Profile',
+  'naga.action.mouse.left': 'Left Click',
+  'naga.action.mouse.right': 'Right Click',
+  'naga.action.mouse.middle': 'Middle Click',
+  'naga.action.mouse.back': 'Mouse Back (X1)',
+  'naga.action.mouse.forward': 'Mouse Forward (X2)',
+  'naga.action.mouse.scroll_up': 'Scroll Up',
+  'naga.action.mouse.scroll_down': 'Scroll Down',
+  'naga.action.dpi.up': 'DPI Up',
+  'naga.action.dpi.down': 'DPI Down',
+  'naga.action.dpi.cycle_up': 'DPI Cycle (+)',
+  'naga.action.dpi.cycle_down': 'DPI Cycle (-)',
+  'naga.action.type.keyboard': 'Keyboard Key…',
+  'naga.action.type.disabled': 'Disable Button',
+  'naga.action.type.other': 'Other Action',
   'naga.mappings.footer':
-    'Tip: bind side buttons 1–6 to F13–F18 (or F13–F24 for the 12-button plate) in Razer Synapse onboard memory so XTools can intercept them without conflicting with your keyboard.',
-  'naga.section.monitor': 'Live Input Monitor (Razer Device)',
-  'naga.monitor.clear': 'Clear',
-  'naga.monitor.empty': 'Press any side button on your Naga mouse to inspect its raw keystroke and remap result.',
-  'naga.monitor.remapped': '→ {target}',
+    'Click a button label and press any key or shortcut to flash it directly into the mouse onboard memory via Razer HID protocol. Once written, mappings work natively without Synapse, XTools, or background hooks.',
+
+  'naga.section.test': 'Local Key Test Box',
+  'naga.test.placeholder': 'Click here and press any side button to verify hardware output…',
+  'naga.test.lastKey': 'Last input',
+  'naga.test.clear': 'Clear',
 
   'tool.hypercapslock.title': 'HyperCapslock',
   'hyper.section.service': 'Service',
@@ -321,12 +384,12 @@ const EN_STRINGS: Record<string, string> = {
   'hyper.importSuccess': 'Imported {count} mapping(s).',
   'hyper.importFailed': 'Import failed: {error}',
   'hyper.status.autoPaused': 'Auto-paused',
-  'hyper.status.autoPausedBy': 'HyperCapslock was auto-paused because {processes} is running. It resumes automatically once all of them exit.',
+  'hyper.status.autoPausedBy': 'HyperCapslock is auto-paused (low-level keyboard hook uninstalled) because {processes} is running. It resumes automatically once all of them exit.',
   'hyper.autoPause.section': 'Auto-Pause on Processes',
   'hyper.autoPause.footer':
-    'While any listed process is running, HyperCapslock pauses itself and shows a notification; it resumes once all of them have exited. If you paused it manually, it will not be auto-resumed.',
+    'While any listed process is running, HyperCapslock pauses itself and uninstalls the keyboard hook to stay anti-cheat safe; it resumes once all of them exit. If you paused it manually, it will not be auto-resumed.',
   'hyper.autoPause.enable.title': 'Enable Process Auto-Pause',
-  'hyper.autoPause.enable.subtitle': 'Pause automatically while the processes below are running, and resume when they exit.',
+  'hyper.autoPause.enable.subtitle': 'Pause automatically and uninstall the keyboard hook while the processes below are running.',
   'hyper.autoPause.sound.title': 'Notification Sound',
   'hyper.autoPause.input.placeholder': 'Process name, e.g. steam.exe or cs2',
   'hyper.autoPause.add': 'Add',
@@ -366,6 +429,8 @@ const SPECIAL_VK_NAMES: Record<number, string> = {
   8: 'Backspace',
   9: 'Tab',
   13: 'Enter',
+  19: 'Pause',
+  20: 'CapsLock',
   27: 'Esc',
   32: 'Space',
   33: 'PgUp',
@@ -376,8 +441,24 @@ const SPECIAL_VK_NAMES: Record<number, string> = {
   38: '↑',
   39: '→',
   40: '↓',
+  44: 'PrtSc',
   45: 'Ins',
   46: 'Del',
+  91: 'L-Win',
+  92: 'R-Win',
+  106: 'Num *',
+  107: 'Num +',
+  109: 'Num -',
+  110: 'Num .',
+  111: 'Num /',
+  144: 'NumLock',
+  145: 'ScrollLock',
+  160: 'L-Shift',
+  161: 'R-Shift',
+  162: 'L-Ctrl',
+  163: 'R-Ctrl',
+  164: 'L-Alt',
+  165: 'R-Alt',
   186: ';',
   187: '=',
   188: ',',
@@ -448,6 +529,38 @@ export class I18nManager {
 
   public nagaPlateLabel(layout: NagaPlateLayout): string {
     return this.t(`naga.plate.${layout}`);
+  }
+
+  public formatNagaAction(action: NagaHardwareAction): string {
+    switch (action.kind) {
+      case 'disabled':
+        return this.t('naga.action.disabled');
+      case 'mouse':
+        return this.t(`naga.action.mouse.${action.button}`);
+      case 'keyboard': {
+        const parts: string[] = [];
+        if (action.ctrl) parts.push('Ctrl');
+        if (action.alt) parts.push('Alt');
+        if (action.shift) parts.push('Shift');
+        if (action.win) parts.push('Win');
+        const keyLabel =
+          action.vk > 0
+            ? this.vkName(action.vk)
+            : `HID 0x${action.hid_code.toString(16).toUpperCase().padStart(2, '0')}`;
+        parts.push(keyLabel);
+        return parts.join('+');
+      }
+      case 'dpi':
+        return this.t(`naga.action.dpi.${action.op}`);
+      case 'profile':
+        return `${this.t('naga.action.profile')} (${action.op})`;
+      case 'media':
+        return `Media 0x${action.usage.toString(16).toUpperCase().padStart(4, '0')}`;
+      case 'hypershift':
+        return this.t('naga.action.hypershift');
+      case 'raw':
+        return `Raw 0x${action.action_type.toString(16).toUpperCase().padStart(2, '0')}`;
+    }
   }
 
   public vkName(vk: number): string {

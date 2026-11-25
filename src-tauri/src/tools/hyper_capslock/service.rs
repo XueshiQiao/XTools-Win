@@ -207,6 +207,11 @@ impl HyperCapslockService {
   fn apply_engine_paused(&self, paused: bool) {
     if self.engine_paused.swap(paused, Ordering::SeqCst) != paused {
       self.engine.set_paused(paused);
+      if paused {
+        self.hook.stop();
+      } else {
+        self.hook.start();
+      }
     }
   }
 
@@ -290,12 +295,14 @@ impl HyperCapslockService {
   }
 
   pub fn start(self: &Arc<Self>) {
-    // Evaluate processes first so the engine starts paused if a watched process is already running.
-    self.check_processes_now();
-
     let engine = Arc::clone(&self.engine);
     self.hook.set_hyper_handler(move |ev| engine.handle_event(ev));
-    self.hook.start();
+
+    // Evaluate processes first so the hook stays uninstalled if a watched process is already running.
+    self.check_processes_now();
+    if !self.engine_paused.load(Ordering::SeqCst) && !self.hook.is_running() {
+      self.hook.start();
+    }
 
     let mut handle_guard = self.watcher_handle.lock().unwrap();
     if handle_guard.is_none() {
@@ -330,6 +337,7 @@ impl HyperCapslockService {
 
   pub fn stop(&self) {
     self.hook.clear_hyper_handler();
+    self.hook.stop();
     if let Some(tx) = self.watcher_tx.lock().unwrap().take() {
       let _ = tx.send(WatcherSignal::Shutdown);
     }
@@ -340,14 +348,14 @@ impl HyperCapslockService {
   }
 
   pub fn set_paused(&self, paused: bool) -> Result<HyperCapslockSnapshot, String> {
-    {
+    let effective = {
       let mut state = self.auto_pause.lock().unwrap();
       self.prefs.update(|cfg| {
         cfg.hyper_capslock.paused = paused;
       })?;
-      let effective = state.on_manual_set_paused(paused);
-      self.apply_engine_paused(effective);
-    }
+      state.on_manual_set_paused(paused)
+    };
+    self.apply_engine_paused(effective);
     LOG.info(if paused {
       "HyperCapslock paused"
     } else {

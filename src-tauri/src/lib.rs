@@ -13,13 +13,13 @@ use core::notifier::WindowsNotifier;
 use core::preferences::PreferencesStore;
 use core::process_watcher::RunningProcessInfo;
 use core::tool::{ToolRegistry, XTool};
-use core::vk::KeyShortcut;
 use tools::hyper_capslock::config::{ActionConfig, ActionMappingEntry, Trigger};
 use tools::hyper_capslock::service::{
   HyperCapslockService, HyperCapslockSnapshot, HyperCapslockTool,
 };
 use tools::razer_naga::config::NagaPlateLayout;
-use tools::razer_naga::service::{NagaRecordMode, NagaService, NagaSnapshot, NagaTool};
+use tools::razer_naga::protocol::{NagaDpi, NagaHardwareAction};
+use tools::razer_naga::service::{NagaService, NagaSnapshot, NagaTool};
 use tools::rog_keyboard::service::{
   RogKeyboardService, RogKeyboardSnapshot, RogKeyboardTool, RogSettingsPatch,
 };
@@ -194,14 +194,6 @@ fn naga_refresh(state: State<'_, Arc<AppRuntimeState>>) {
 }
 
 #[tauri::command]
-fn naga_set_enabled(
-  state: State<'_, Arc<AppRuntimeState>>,
-  enabled: bool,
-) -> Result<NagaSnapshot, String> {
-  state.naga_service.set_enabled(enabled)
-}
-
-#[tauri::command]
 fn naga_set_plate_layout(
   state: State<'_, Arc<AppRuntimeState>>,
   layout: NagaPlateLayout,
@@ -210,55 +202,50 @@ fn naga_set_plate_layout(
 }
 
 #[tauri::command]
-fn naga_set_button_shortcut(
+fn naga_set_active_profile(
   state: State<'_, Arc<AppRuntimeState>>,
-  button_index: u8,
-  shortcut: Option<KeyShortcut>,
+  profile: u8,
 ) -> Result<NagaSnapshot, String> {
-  state
-    .naga_service
-    .set_button_shortcut(button_index, shortcut)
+  state.naga_service.set_active_profile(profile)
 }
 
 #[tauri::command]
-fn naga_set_button_sentinel(
+fn naga_delete_profile(
   state: State<'_, Arc<AppRuntimeState>>,
-  button_index: u8,
-  sentinel_vk: u16,
+  profile: u8,
 ) -> Result<NagaSnapshot, String> {
-  state
-    .naga_service
-    .set_button_sentinel(button_index, sentinel_vk)
+  state.naga_service.delete_profile(profile)
 }
 
 #[tauri::command]
-fn naga_set_button_enabled(
+fn naga_set_button_action(
   state: State<'_, Arc<AppRuntimeState>>,
-  button_index: u8,
-  enabled: bool,
+  button_id: u8,
+  action: NagaHardwareAction,
 ) -> Result<NagaSnapshot, String> {
-  state
-    .naga_service
-    .set_button_enabled(button_index, enabled)
+  state.naga_service.set_button_action(button_id, action)
 }
 
 #[tauri::command]
-fn naga_begin_recording(
+fn naga_reset_plate_defaults(state: State<'_, Arc<AppRuntimeState>>) -> Result<NagaSnapshot, String> {
+  state.naga_service.reset_plate_defaults()
+}
+
+#[tauri::command]
+fn naga_set_dpi_stages(
   state: State<'_, Arc<AppRuntimeState>>,
-  button_index: u8,
-  mode: NagaRecordMode,
-) -> NagaSnapshot {
-  state.naga_service.begin_recording(button_index, mode)
+  active_stage: u8,
+  stages: Vec<NagaDpi>,
+) -> Result<NagaSnapshot, String> {
+  state.naga_service.set_dpi_stages(active_stage, stages)
 }
 
 #[tauri::command]
-fn naga_cancel_recording(state: State<'_, Arc<AppRuntimeState>>) -> NagaSnapshot {
-  state.naga_service.cancel_recording()
-}
-
-#[tauri::command]
-fn naga_clear_captures(state: State<'_, Arc<AppRuntimeState>>) -> NagaSnapshot {
-  state.naga_service.clear_captures()
+fn naga_set_polling_rate(
+  state: State<'_, Arc<AppRuntimeState>>,
+  hz: u16,
+) -> Result<NagaSnapshot, String> {
+  state.naga_service.set_polling_rate(hz)
 }
 
 #[tauri::command]
@@ -344,7 +331,7 @@ pub fn run() {
       let keyboard_hook = KeyboardHookHub::new_shared();
 
       let rog_service = RogKeyboardService::new(Arc::clone(&prefs), Arc::clone(&notifier));
-      let naga_service = NagaService::new(Arc::clone(&prefs), Arc::clone(&keyboard_hook));
+      let naga_service = NagaService::new(Arc::clone(&prefs));
       let hyper_service = HyperCapslockService::new(
         Arc::clone(&prefs),
         Arc::clone(&keyboard_hook),
@@ -455,14 +442,13 @@ pub fn run() {
       hyper_export_mappings,
       naga_get_state,
       naga_refresh,
-      naga_set_enabled,
       naga_set_plate_layout,
-      naga_set_button_shortcut,
-      naga_set_button_sentinel,
-      naga_set_button_enabled,
-      naga_begin_recording,
-      naga_cancel_recording,
-      naga_clear_captures,
+      naga_set_active_profile,
+      naga_delete_profile,
+      naga_set_button_action,
+      naga_reset_plate_defaults,
+      naga_set_dpi_stages,
+      naga_set_polling_rate,
       app_get_general_settings,
       app_set_launch_at_login,
       app_set_language,

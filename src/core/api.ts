@@ -7,10 +7,10 @@ import {
   HyperActionConfig,
   HyperCapslockSnapshot,
   HyperTrigger,
-  KeyShortcut,
   LanguagePreference,
+  NagaDpi,
+  NagaHardwareAction,
   NagaPlateLayout,
-  NagaRecordMode,
   NagaSnapshot,
   RogKeyboardSnapshot,
   RogSettingsPatch,
@@ -111,48 +111,38 @@ export class XToolsApi {
     await invoke('naga_refresh');
   }
 
-  public async setNagaEnabled(enabled: boolean): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_set_enabled', { enabled });
-  }
-
   public async setNagaPlateLayout(layout: NagaPlateLayout): Promise<NagaSnapshot> {
     return invoke<NagaSnapshot>('naga_set_plate_layout', { layout });
   }
 
-  public async setNagaButtonShortcut(
-    buttonIndex: number,
-    shortcut: KeyShortcut | null
+  public async setNagaActiveProfile(profile: number): Promise<NagaSnapshot> {
+    return invoke<NagaSnapshot>('naga_set_active_profile', { profile });
+  }
+
+  public async deleteNagaProfile(profile: number): Promise<NagaSnapshot> {
+    return invoke<NagaSnapshot>('naga_delete_profile', { profile });
+  }
+
+  public async setNagaButtonAction(
+    buttonId: number,
+    action: NagaHardwareAction
   ): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_set_button_shortcut', { buttonIndex, shortcut });
+    return invoke<NagaSnapshot>('naga_set_button_action', { buttonId, action });
   }
 
-  public async setNagaButtonSentinel(
-    buttonIndex: number,
-    sentinelVk: number
+  public async resetNagaPlateDefaults(): Promise<NagaSnapshot> {
+    return invoke<NagaSnapshot>('naga_reset_plate_defaults');
+  }
+
+  public async setNagaDpiStages(
+    activeStage: number,
+    stages: NagaDpi[]
   ): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_set_button_sentinel', { buttonIndex, sentinelVk });
+    return invoke<NagaSnapshot>('naga_set_dpi_stages', { activeStage, stages });
   }
 
-  public async setNagaButtonEnabled(
-    buttonIndex: number,
-    enabled: boolean
-  ): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_set_button_enabled', { buttonIndex, enabled });
-  }
-
-  public async beginNagaRecording(
-    buttonIndex: number,
-    mode: NagaRecordMode
-  ): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_begin_recording', { buttonIndex, mode });
-  }
-
-  public async cancelNagaRecording(): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_cancel_recording');
-  }
-
-  public async clearNagaCaptures(): Promise<NagaSnapshot> {
-    return invoke<NagaSnapshot>('naga_clear_captures');
+  public async setNagaPollingRate(hz: number): Promise<NagaSnapshot> {
+    return invoke<NagaSnapshot>('naga_set_polling_rate', { hz });
   }
 
   public async onNagaStateChanged(

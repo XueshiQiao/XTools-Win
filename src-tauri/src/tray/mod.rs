@@ -688,11 +688,18 @@ impl TrayController {
         if is_zh { "未连接" } else { "Disconnected" }
       }
     };
-    if let Some(dpi) = snapshot.dpi {
-      format!("{} · {} DPI", link, dpi.x)
-    } else {
-      link.to_string()
+    let mut parts = vec![link.to_string()];
+    if let Some(prof) = &snapshot.profile_info {
+      parts.push(if is_zh {
+        format!("配置文件 {}", prof.active_profile)
+      } else {
+        format!("Profile {}", prof.active_profile)
+      });
     }
+    if let Some(dpi) = snapshot.dpi {
+      parts.push(format!("{} DPI", dpi.x));
+    }
+    parts.join(" · ")
   }
 
   fn naga_battery_tooltip(
@@ -705,11 +712,18 @@ impl TrayController {
       Some(label) => format!("{}%（{}）", bat.percent, label),
       None => format!("{}%", bat.percent),
     };
-    if let Some(dpi) = snapshot.dpi {
-      format!("{} · {} · {} DPI", NagaModel::DISPLAY_NAME, bat_part, dpi.x)
-    } else {
-      format!("{} · {}", NagaModel::DISPLAY_NAME, bat_part)
+    let mut parts = vec![NagaModel::DISPLAY_NAME.to_string(), bat_part];
+    if let Some(prof) = &snapshot.profile_info {
+      parts.push(if is_zh {
+        format!("配置文件 {}", prof.active_profile)
+      } else {
+        format!("Profile {}", prof.active_profile)
+      });
     }
+    if let Some(dpi) = snapshot.dpi {
+      parts.push(format!("{} DPI", dpi.x));
+    }
+    parts.join(" · ")
   }
 
   fn naga_charge_label(state: NagaChargingState, is_zh: bool) -> Option<&'static str> {

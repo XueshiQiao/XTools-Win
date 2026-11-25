@@ -1,8 +1,10 @@
 use std::thread;
 use std::time::Duration;
 
+use super::config::NagaPlateLayout;
 use super::protocol::{
-  NagaBatteryInfo, NagaChargingState, NagaDeviceState, NagaLink, NagaModel, RazerReport,
+  is_allowed_writable_button, NagaBatteryInfo, NagaChargingState, NagaDeviceState, NagaDpi,
+  NagaHardwareAction, NagaHardwareButton, NagaLink, NagaModel, NagaProfileInfo, RazerReport,
 };
 use crate::core::file_log::FileLog;
 
@@ -35,6 +37,7 @@ pub enum NagaError {
   Offline,
   Rejected,
   TimedOut,
+  InvalidParam(String),
 }
 
 impl NagaError {
@@ -56,7 +59,7 @@ impl NagaError {
       }
       Self::IoFailed(code) => {
         if is_zh {
-          format!("读取鼠标特征报告失败（Win32 0x{:08X}）。", code)
+          format!("读取或写入鼠标 HID 报告失败（Win32 0x{:08X}）。", code)
         } else {
           format!("HID feature report I/O failed (Win32 0x{:08X}).", code)
         }
@@ -70,9 +73,9 @@ impl NagaError {
       }
       Self::Rejected => {
         if is_zh {
-          "鼠标拒绝了查询指令。".to_string()
+          "鼠标拒绝了该指令。".to_string()
         } else {
-          "Mouse rejected the query command.".to_string()
+          "Mouse rejected the command.".to_string()
         }
       }
       Self::TimedOut => {
@@ -82,6 +85,7 @@ impl NagaError {
           "Timed out waiting for mouse reply.".to_string()
         }
       }
+      Self::InvalidParam(msg) => msg.clone(),
     }
   }
 }
@@ -294,6 +298,34 @@ impl NagaHidDevice {
     }
   }
 
+  pub fn open_active() -> Result<Self, NagaError> {
+    let candidates = Self::discover(&NagaModel::ALL_PRODUCT_IDS);
+    if candidates.is_empty() {
+      return Err(NagaError::NotFound);
+    }
+
+    let mut last_err = NagaError::Offline;
+    for info in candidates {
+      match Self::open(&info) {
+        Ok(dev) => match dev.exchange(&RazerReport::battery_request()) {
+          Ok(_) => return Ok(dev),
+          Err(err) => {
+            LOG.info(&format!(
+              "probe PID 0x{:04X} skipped: {:?}",
+              info.product_id, err
+            ));
+            last_err = err;
+          }
+        },
+        Err(err) => {
+          last_err = err;
+        }
+      }
+    }
+
+    Err(last_err)
+  }
+
   /// Sends a Razer 90-byte feature report and polls quickly until the response matches
   /// `(tx_id, cmd_class, cmd_id)`, tolerating Razer Synapse's continuous Chroma traffic.
   pub fn exchange(
@@ -349,7 +381,59 @@ impl NagaHidDevice {
     }
   }
 
-  pub fn read_device_state(&self) -> Result<NagaDeviceState, NagaError> {
+  fn read_active_profile_slot(&self) -> u8 {
+    self
+      .exchange(&RazerReport::active_profile_request())
+      .ok()
+      .map(|p| p[8])
+      .filter(|&p| (1..=NagaModel::MAX_PROFILES).contains(&p))
+      .unwrap_or(1)
+  }
+
+  pub fn read_profile_info(&self) -> Option<NagaProfileInfo> {
+    let (max_profiles, mut available_profiles) = self
+      .exchange(&RazerReport::profile_list_request())
+      .ok()
+      .and_then(|p| RazerReport::parse_profile_list(&p))
+      .unwrap_or((NagaModel::MAX_PROFILES, vec![1]));
+
+    let active_profile = self.read_active_profile_slot();
+    if !available_profiles.contains(&active_profile) {
+      available_profiles.push(active_profile);
+      available_profiles.sort_unstable();
+    }
+
+    Some(NagaProfileInfo {
+      max_profiles,
+      active_profile,
+      available_profiles,
+    })
+  }
+
+  pub fn read_buttons(&self, profile: u8, plate_layout: NagaPlateLayout) -> Vec<NagaHardwareButton> {
+    let ids = plate_layout.button_ids();
+    let mut buttons = Vec::with_capacity(ids.len());
+    for (idx, &button_id) in ids.iter().enumerate() {
+      let action = match self.exchange(&RazerReport::get_button_request(profile, button_id, 0x00)) {
+        Ok(payload) => RazerReport::parse_button_action(&payload),
+        Err(err) => {
+          LOG.warn(&format!(
+            "get_button(profile={}, btn=0x{:02X}) failed: {:?}",
+            profile, button_id, err
+          ));
+          plate_layout.factory_default_action(button_id)
+        }
+      };
+      buttons.push(NagaHardwareButton {
+        index: (idx + 1) as u8,
+        button_id,
+        action,
+      });
+    }
+    buttons
+  }
+
+  pub fn read_device_state(&self, plate_layout: NagaPlateLayout) -> Result<NagaDeviceState, NagaError> {
     let link = NagaLink::from_pid(self.product_id).unwrap_or(NagaLink::Wired);
 
     let bat_payload = self.exchange(&RazerReport::battery_request())?;
@@ -381,6 +465,27 @@ impl NagaHidDevice {
       .ok()
       .and_then(|p| RazerReport::parse_dpi(&p));
 
+    let polling_rate_hz = self
+      .exchange(&RazerReport::polling_rate_get_request())
+      .ok()
+      .and_then(|p| RazerReport::parse_polling_rate(&p));
+
+    let profile_info = self.read_profile_info();
+    let active_profile = profile_info.as_ref().map(|p| p.active_profile).unwrap_or(1);
+
+    let dpi_stages = self
+      .exchange(&RazerReport::dpi_stages_get_request(active_profile))
+      .ok()
+      .and_then(|p| RazerReport::parse_dpi_stages(&p))
+      .or_else(|| {
+        self
+          .exchange(&RazerReport::dpi_stages_get_request(0x00))
+          .ok()
+          .and_then(|p| RazerReport::parse_dpi_stages(&p))
+      });
+
+    let buttons = self.read_buttons(active_profile, plate_layout);
+
     Ok(NagaDeviceState {
       link,
       firmware_version,
@@ -389,35 +494,133 @@ impl NagaHidDevice {
         charging_state,
       }),
       dpi,
+      dpi_stages,
+      polling_rate_hz,
+      profile_info,
+      buttons,
     })
   }
 
-  pub fn read_active_state() -> Result<NagaDeviceState, NagaError> {
-    let candidates = Self::discover(&NagaModel::ALL_PRODUCT_IDS);
-    if candidates.is_empty() {
-      return Err(NagaError::NotFound);
+  pub fn read_active_state(plate_layout: NagaPlateLayout) -> Result<NagaDeviceState, NagaError> {
+    let dev = Self::open_active()?;
+    dev.read_device_state(plate_layout)
+  }
+
+  pub fn set_active_profile(&self, profile: u8) -> Result<(), NagaError> {
+    if !(1..=NagaModel::MAX_PROFILES).contains(&profile) {
+      return Err(NagaError::InvalidParam(format!(
+        "Invalid profile slot: {}",
+        profile
+      )));
+    }
+    let available = self
+      .exchange(&RazerReport::profile_list_request())
+      .ok()
+      .and_then(|p| RazerReport::parse_profile_list(&p))
+      .map(|(_, list)| list)
+      .unwrap_or_else(|| vec![1]);
+
+    if !available.contains(&profile) {
+      self.exchange(&RazerReport::create_profile_request(profile))?;
+    }
+    self.exchange(&RazerReport::set_active_profile_request(profile))?;
+    Ok(())
+  }
+
+  pub fn delete_profile(&self, profile: u8) -> Result<(), NagaError> {
+    if !(2..=NagaModel::MAX_PROFILES).contains(&profile) {
+      return Err(NagaError::InvalidParam(format!(
+        "Cannot delete profile slot {}",
+        profile
+      )));
+    }
+    if self.read_active_profile_slot() == profile {
+      self.exchange(&RazerReport::set_active_profile_request(1))?;
+    }
+    self.exchange(&RazerReport::delete_profile_request(profile))?;
+    Ok(())
+  }
+
+  pub fn set_button_action(
+    &self,
+    profile: u8,
+    button_id: u8,
+    action: &NagaHardwareAction,
+  ) -> Result<NagaHardwareAction, NagaError> {
+    if !(1..=NagaModel::MAX_PROFILES).contains(&profile) {
+      return Err(NagaError::InvalidParam(format!(
+        "Invalid profile slot: {}",
+        profile
+      )));
+    }
+    if !is_allowed_writable_button(button_id) {
+      return Err(NagaError::InvalidParam(format!(
+        "Button 0x{:02X} is not writable",
+        button_id
+      )));
     }
 
-    let mut last_err = NagaError::Offline;
-    for info in candidates {
-      match Self::open(&info) {
-        Ok(dev) => match dev.read_device_state() {
-          Ok(state) => return Ok(state),
-          Err(err) => {
-            LOG.info(&format!(
-              "probe PID 0x{:04X} skipped: {:?}",
-              info.product_id, err
-            ));
-            last_err = err;
-          }
-        },
-        Err(err) => {
-          last_err = err;
-        }
-      }
+    let req = RazerReport::set_button_request(profile, button_id, 0x00, action)
+      .map_err(NagaError::InvalidParam)?;
+    self.exchange(&req)?;
+
+    if self.read_active_profile_slot() == profile {
+      let live_req = RazerReport::set_button_request(0x00, button_id, 0x00, action)
+        .map_err(NagaError::InvalidParam)?;
+      let _ = self.exchange(&live_req);
     }
 
-    Err(last_err)
+    let readback = self.exchange(&RazerReport::get_button_request(profile, button_id, 0x00))?;
+    Ok(RazerReport::parse_button_action(&readback))
+  }
+
+  pub fn set_dpi_stages(
+    &self,
+    profile: u8,
+    active_stage: u8,
+    stages: &[NagaDpi],
+  ) -> Result<(), NagaError> {
+    if !(1..=NagaModel::MAX_PROFILES).contains(&profile) {
+      return Err(NagaError::InvalidParam(format!(
+        "Invalid profile slot: {}",
+        profile
+      )));
+    }
+    if stages.is_empty() || stages.len() > NagaModel::MAX_DPI_STAGES {
+      return Err(NagaError::InvalidParam(format!(
+        "DPI stage count must be 1..={}",
+        NagaModel::MAX_DPI_STAGES
+      )));
+    }
+
+    let clamped: Vec<NagaDpi> = stages
+      .iter()
+      .map(|s| NagaDpi {
+        x: s.x.clamp(NagaModel::DPI_MIN, NagaModel::DPI_MAX),
+        y: s.y.clamp(NagaModel::DPI_MIN, NagaModel::DPI_MAX),
+      })
+      .collect();
+    let active = active_stage.clamp(1, clamped.len() as u8);
+
+    self.exchange(&RazerReport::dpi_stages_set_request(
+      profile, active, &clamped,
+    ))?;
+
+    if self.read_active_profile_slot() == profile {
+      let _ = self.exchange(&RazerReport::dpi_stages_set_request(
+        0x00, active, &clamped,
+      ));
+      let active_dpi = clamped[usize::from(active - 1)];
+      let _ = self.exchange(&RazerReport::set_dpi_request(0x00, active_dpi));
+    }
+    Ok(())
+  }
+
+  pub fn set_polling_rate(&self, hz: u16) -> Result<(), NagaError> {
+    let req = RazerReport::polling_rate_set_request(hz)
+      .ok_or_else(|| NagaError::InvalidParam(format!("Unsupported polling rate: {} Hz", hz)))?;
+    self.exchange(&req)?;
+    Ok(())
   }
 }
 
@@ -433,13 +636,96 @@ mod tests {
       !candidates.is_empty(),
       "No Razer Naga V3 Pro control interface (VID 0x1532, UsagePage 0x0001, Usage 0x0003, Feature 91) found"
     );
-    let state =
-      NagaHidDevice::read_active_state().expect("Failed to read live Razer Naga V3 Pro state");
+    let state = NagaHidDevice::read_active_state(NagaPlateLayout::SixButton)
+      .expect("Failed to read live Razer Naga V3 Pro state");
     let bat = state.battery.as_ref().expect("Expected battery info");
     println!(
-      "LIVE RAZER HARDWARE CHECK: link={:?} firmware={:?} battery={}% ({:?}) dpi={:?}",
-      state.link, state.firmware_version, bat.percent, bat.charging_state, state.dpi
+      "LIVE RAZER HARDWARE CHECK: link={:?} firmware={:?} battery={}% ({:?}) dpi={:?} poll={:?} profiles={:?} stages={:?} buttons={:?}",
+      state.link,
+      state.firmware_version,
+      bat.percent,
+      bat.charging_state,
+      state.dpi,
+      state.polling_rate_hz,
+      state.profile_info,
+      state.dpi_stages,
+      state.buttons
     );
     assert!(bat.percent <= 100);
+  }
+
+  #[test]
+  #[ignore = "Requires live Razer Naga V3 Pro hardware; temporarily toggles button 0x55 and restores it"]
+  fn live_naga_onboard_roundtrip() {
+    let dev = NagaHidDevice::open_active().expect("Failed to open active Naga V3 Pro");
+    let before = dev
+      .read_device_state(NagaPlateLayout::SixButton)
+      .expect("Failed to read initial state");
+    let active_profile = before
+      .profile_info
+      .as_ref()
+      .map(|p| p.active_profile)
+      .unwrap_or(1);
+
+    let btn_id = 0x55u8; // 6-button side plate #6
+    let orig_payload = dev
+      .exchange(&RazerReport::get_button_request(active_profile, btn_id, 0x00))
+      .expect("Failed to read original button 0x55");
+    let orig_action = RazerReport::parse_button_action(&orig_payload);
+    println!("Original button 0x55 on profile {}: {:?}", active_profile, orig_action);
+
+    let temp_w = NagaHardwareAction::Keyboard {
+      vk: b'W' as u16,
+      hid_code: 0x1A,
+      ctrl: false,
+      shift: false,
+      alt: false,
+      win: false,
+    };
+
+    let readback_p = dev
+      .set_button_action(active_profile, btn_id, &temp_w)
+      .expect("Failed to write W to button 0x55");
+    assert_eq!(readback_p, temp_w);
+
+    let live_payload = dev
+      .exchange(&RazerReport::get_button_request(0x00, btn_id, 0x00))
+      .expect("Failed to read live RAM slot 0 for button 0x55");
+    assert_eq!(RazerReport::parse_button_action(&live_payload), temp_w);
+    println!("Verified write & live RAM readback of W on button 0x55");
+
+    // Restore original button mapping
+    let restored = dev
+      .set_button_action(active_profile, btn_id, &orig_action)
+      .expect("Failed to restore original button 0x55");
+    assert_eq!(restored, orig_action);
+    println!("Restored original button 0x55: {:?}", restored);
+
+    // Verify DPI stages write-back with exact current stages (no change to user settings)
+    if let Some(stages) = before.dpi_stages.clone() {
+      dev
+        .set_dpi_stages(active_profile, stages.active_stage, &stages.stages)
+        .expect("Failed to roundtrip DPI stages");
+      let after_stages = dev
+        .exchange(&RazerReport::dpi_stages_get_request(active_profile))
+        .ok()
+        .and_then(|p| RazerReport::parse_dpi_stages(&p))
+        .expect("Failed to re-read DPI stages");
+      assert_eq!(after_stages, stages);
+      println!("Verified DPI stages roundtrip: {:?}", after_stages);
+    }
+
+    // Verify polling rate write-back with exact current Hz
+    if let Some(hz) = before.polling_rate_hz {
+      dev
+        .set_polling_rate(hz)
+        .expect("Failed to roundtrip polling rate");
+      let after_poll = dev
+        .exchange(&RazerReport::polling_rate_get_request())
+        .ok()
+        .and_then(|p| RazerReport::parse_polling_rate(&p));
+      assert_eq!(after_poll, Some(hz));
+      println!("Verified polling rate roundtrip: {:?} Hz", after_poll);
+    }
   }
 }

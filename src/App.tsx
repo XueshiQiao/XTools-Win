@@ -41,13 +41,14 @@ const DEFAULT_NAGA_STATE: NagaSnapshot = {
   firmware_version: null,
   battery: null,
   dpi: null,
-  is_busy: false,
-  error_message: null,
-  enabled: true,
+  dpi_stages: null,
+  polling_rate_hz: null,
+  profile_info: null,
   plate_layout: 'six_button',
-  mappings: [],
-  recording: null,
-  captures: [],
+  buttons: [],
+  is_busy: false,
+  status_message: null,
+  error_message: null,
 };
 
 const DEFAULT_HYPER_STATE: HyperCapslockSnapshot = {

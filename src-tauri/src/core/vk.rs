@@ -59,6 +59,7 @@ impl VkHelper {
     matches!(vk, 0x10..=0x12 | 0x5B | 0x5C | 0xA0..=0xA5)
   }
 
+  #[allow(dead_code)]
   pub fn is_sentinel_fn_vk(vk: u16) -> bool {
     matches!(vk, 0x7C..=0x87)
   }
