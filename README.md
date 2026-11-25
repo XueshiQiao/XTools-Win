@@ -1,6 +1,6 @@
 # XTools for Windows
 
-Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust + Tauri v2 + Windows Win32/WinRT API** 构建，延续 macOS 版轻量实用工具箱的交互与视觉风格，专注于免驱直连的外设硬件控制与高效键盘工作流。
+Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust + Tauri v2 + Windows Win32/WinRT API** 构建，延续 macOS 版轻量实用工具箱的交互与视觉风格，专注于免驱直连的外设硬件控制、USB 端口拓扑诊断与高效键盘工作流。
 
 ## 功能一览
 
@@ -48,6 +48,17 @@ Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust
 
 ![HyperCapslock 界面](docs/screenshots/hyper-capslock.png)
 
+### USB 端口（USB Inspector）
+
+通用的 Windows USB 拓扑探测与异常诊断工具，不绑定特定主板型号，帮助你直观查看每个物理接口归属的控制器、规格参数、实时插拔动态与异常断连情况。
+
+- **硬件级 USB 拓扑扫描**：直接通过 Win32 USB Host Controller / Hub IOCTL（`IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX` / `V2`、`IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES` 与设备描述符）探测根集线器与外接 Hub 树，自动将 xHCI 的 USB 2.0 / 3.x Companion Port 合并为单一物理插口。
+- **控制器来源与端口规格识别**：结合 PCI Vendor / Device ID 与 Location Path 自动识别 **CPU 直连**（含 USB4 / Thunderbolt）、**主板芯片组** 与 **独立扩展芯片**（ASMedia / Renesas / VIA 等）；清晰展示每个插口的最高支持速率（`USB 2.0 / 5G / 10G`）、Type-C 标识、当前协商速率、`VID:PID` 与供电电流（mA）。
+- **实时插拔追踪与近 24h 断连诊断**：借助 `WM_DEVICECHANGE` 实时捕获插拔事件并高亮「刚刚变动」的端口；同时查询 Windows `Microsoft-Windows-Kernel-PnP/Device Management` 日志（`EventID 1010 / 1011`），汇总近 24 小时异常掉线次数，并在发现设备错误（如 Code 43）、频繁断连或高回报率外设适合直连 CPU 端口时给出诊断提示。
+- **自定义物理位置备注**：支持为空闲或已连接端口添加持久化位置标签（如「背面蓝口 #1」「前面板 2.4G」），并可自由切换是否展示空闲端口。
+
+![USB 端口界面](docs/screenshots/usb-inspector.png)
+
 ### 通用体验与系统托盘
 
 - **多托盘协同**：保留 XTools 主托盘图标（汇总设备状态、快捷切档、刷新电量、快速暂停 / 恢复 HyperCapslock），同时在 ROG Falcata 与 Razer Naga V3 Pro 连接时各自显示独立的数字电量图标。
@@ -62,7 +73,7 @@ Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust
 
 ## 技术栈
 
-- **后端**：Rust、`tauri` v2（`tray-icon`、`single-instance`、`opener`）、`windows` crate（Win32 SetupAPI / HID Overlapped I/O 与 Feature Report / `WM_DEVICECHANGE` / `WH_KEYBOARD_LL` / ToolHelp32 进程快照 / DWM 暗色圆角 / Registry / WinRT ToastNotifications）
+- **后端**：Rust、`tauri` v2（`tray-icon`、`single-instance`、`opener`）、`windows` crate（Win32 SetupAPI / USB Host Controller & Hub IOCTL / HID Overlapped I/O 与 Feature Report / `WM_DEVICECHANGE` / Kernel-PnP EventLog / `WH_KEYBOARD_LL` / ToolHelp32 进程快照 / DWM 暗色圆角 / Registry / WinRT ToastNotifications）
 - **前端**：React 19 + TypeScript + Vite + Tailwind CSS + Lucide Icons
 - **CI / 发布**：GitHub Actions（自动类型检查、前端构建、Rust 单元测试及 Windows `x86_64` / `aarch64` 安装包构建发布）
 
@@ -106,6 +117,9 @@ cargo test --manifest-path src-tauri/Cargo.toml -- --ignored live_read_razer_nag
 
 # Razer Naga V3 Pro 板载配置写入与恢复往返测试
 cargo test --manifest-path src-tauri/Cargo.toml -- --ignored live_naga_onboard_roundtrip --nocapture
+
+# 本机 USB 拓扑与近 24h 断连事件只读扫描
+cargo test --manifest-path src-tauri/Cargo.toml -- --ignored live_scan_usb_topology --nocapture
 ```
 
 ## 相关项目

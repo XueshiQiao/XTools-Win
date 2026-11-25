@@ -50,7 +50,8 @@ src-tauri/src/
 ├── tools/
 │   ├── rog_keyboard/    # ROG Falcata profile auto-switch + battery
 │   ├── razer_naga/      # Razer Naga side-button remapping + battery
-│   └── hyper_capslock/  # CapsLock Hyper key (config, engine, service incl. process auto-pause)
+│   ├── hyper_capslock/  # CapsLock Hyper key (config, engine, service incl. process auto-pause)
+│   └── usb_inspector/   # Generic Windows USB topology, hotplug, and disconnect diagnostics
 └── tray/                # Tray icons and menus
 src/
 ├── core/                # api.ts, types.ts, i18n.ts, toolRegistry.ts
