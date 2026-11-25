@@ -167,7 +167,7 @@ export function FeatureLabel({
 }: {
   color: string;
   icon: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   subtitle: string;
 }) {
   return (

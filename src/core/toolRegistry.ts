@@ -1,6 +1,10 @@
 import React from 'react';
 import { I18nManager } from './i18n';
-import { RogKeyboardSnapshot } from './types';
+import {
+  HyperCapslockSnapshot,
+  NagaSnapshot,
+  RogKeyboardSnapshot,
+} from './types';
 
 export type ToolGroup = 'devices' | 'utilities';
 
@@ -8,6 +12,10 @@ export interface ToolRenderProps {
   i18n: I18nManager;
   rogState: RogKeyboardSnapshot;
   onUpdateRogState: (next: RogKeyboardSnapshot) => void;
+  nagaState: NagaSnapshot;
+  onUpdateNagaState: (next: NagaSnapshot) => void;
+  hyperState: HyperCapslockSnapshot;
+  onUpdateHyperState: (next: HyperCapslockSnapshot) => void;
 }
 
 export interface ToolModule {

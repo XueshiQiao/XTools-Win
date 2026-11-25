@@ -33,6 +33,141 @@ export interface RogSettingsPatch {
   sound_enabled?: boolean;
 }
 
+export interface KeyShortcut {
+  vk: number;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  win: boolean;
+}
+
+export type DirectionalActionKind =
+  | 'left'
+  | 'right'
+  | 'up'
+  | 'down'
+  | 'word_forward'
+  | 'word_back'
+  | 'home'
+  | 'end';
+
+export type JumpDirection = 'up' | 'down';
+
+export type IndependentActionKind =
+  | 'backspace'
+  | 'next_line'
+  | 'insert_quotes'
+  | 'toggle_caps_lock'
+  | 'switch_input_source';
+
+export type HyperActionConfig =
+  | { kind: 'directional'; action: DirectionalActionKind }
+  | { kind: 'jump'; direction: JumpDirection; count: number }
+  | { kind: 'independent'; action: IndependentActionKind }
+  | { kind: 'command'; command: string }
+  | {
+      kind: 'key_combo';
+      target_key: number;
+      with_ctrl: boolean;
+      with_alt: boolean;
+      with_win: boolean;
+      with_shift: boolean;
+    };
+
+export type HyperModifierKey =
+  | 'left_shift'
+  | 'right_shift'
+  | 'left_control'
+  | 'right_control'
+  | 'left_alt'
+  | 'right_alt'
+  | 'left_win'
+  | 'right_win';
+
+export type HyperTrigger =
+  | { kind: 'hyper_plus_key'; key: number; with_shift: boolean }
+  | { kind: 'single_tap_hyper' }
+  | { kind: 'double_tap_hyper' }
+  | { kind: 'double_tap_modifier'; modifier: HyperModifierKey };
+
+export interface HyperActionMappingEntry {
+  trigger: HyperTrigger;
+  action: HyperActionConfig;
+}
+
+export interface RunningProcessInfo {
+  name: string;
+  icon_data_url: string | null;
+  has_window: boolean;
+}
+
+export interface HyperCapslockSnapshot {
+  paused: boolean;
+  manual_paused: boolean;
+  auto_paused: boolean;
+  matched_processes: string[];
+  auto_pause_enabled: boolean;
+  auto_pause_processes: string[];
+  auto_pause_notify_sound: boolean;
+  mappings: HyperActionMappingEntry[];
+}
+
+export type NagaLink = 'wired' | 'wireless24g';
+export type NagaChargingState = 'discharging' | 'charging' | 'full' | 'unknown';
+export type NagaPlateLayout = 'two_button' | 'six_button' | 'twelve_button';
+export type NagaRecordMode = 'target' | 'sentinel';
+
+export interface NagaBatteryInfo {
+  percent: number;
+  charging_state: NagaChargingState;
+}
+
+export interface NagaDpi {
+  x: number;
+  y: number;
+}
+
+export interface NagaButtonMapping {
+  index: number;
+  sentinel_vk: number;
+  target: KeyShortcut | null;
+  enabled: boolean;
+}
+
+export interface NagaRecordingState {
+  button_index: number;
+  mode: NagaRecordMode;
+}
+
+export interface NagaCapturedEvent {
+  id: number;
+  vk: number;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  win: boolean;
+  display: string;
+  detail: string;
+  timestamp_ms: number;
+  remapped_to: string | null;
+}
+
+export interface NagaSnapshot {
+  is_connected: boolean;
+  model_name: string;
+  link: NagaLink | null;
+  firmware_version: string | null;
+  battery: NagaBatteryInfo | null;
+  dpi: NagaDpi | null;
+  is_busy: boolean;
+  error_message: string | null;
+  enabled: boolean;
+  plate_layout: NagaPlateLayout;
+  mappings: NagaButtonMapping[];
+  recording: NagaRecordingState | null;
+  captures: NagaCapturedEvent[];
+}
+
 export type EffectiveLanguage = 'zh-Hans' | 'en';
 export type LanguagePreference = EffectiveLanguage | null;
 

@@ -6,11 +6,15 @@ import { I18nManager } from './core/i18n';
 import { ToolRegistry } from './core/toolRegistry';
 import {
   GeneralSettings,
+  HyperCapslockSnapshot,
+  NagaSnapshot,
   RogKeyboardSnapshot,
   SidebarSelection,
 } from './core/types';
 import { AboutPage } from './pages/AboutPage';
 import { GeneralPage } from './pages/GeneralPage';
+import { hyperCapslockTool } from './tools/hyperCapslock/hyperCapslockTool';
+import { razerNagaTool } from './tools/razerNaga/razerNagaTool';
 import { rogKeyboardTool } from './tools/rogKeyboard/rogKeyboardTool';
 
 const DEFAULT_ROG_STATE: RogKeyboardSnapshot = {
@@ -30,6 +34,33 @@ const DEFAULT_ROG_STATE: RogKeyboardSnapshot = {
   sound_enabled: true,
 };
 
+const DEFAULT_NAGA_STATE: NagaSnapshot = {
+  is_connected: false,
+  model_name: 'Razer Naga V3 Pro',
+  link: null,
+  firmware_version: null,
+  battery: null,
+  dpi: null,
+  is_busy: false,
+  error_message: null,
+  enabled: true,
+  plate_layout: 'six_button',
+  mappings: [],
+  recording: null,
+  captures: [],
+};
+
+const DEFAULT_HYPER_STATE: HyperCapslockSnapshot = {
+  paused: false,
+  manual_paused: false,
+  auto_paused: false,
+  matched_processes: [],
+  auto_pause_enabled: true,
+  auto_pause_processes: [],
+  auto_pause_notify_sound: true,
+  mappings: [],
+};
+
 const DEFAULT_GENERAL: GeneralSettings = {
   launch_at_login: false,
   language: null,
@@ -39,13 +70,18 @@ const DEFAULT_GENERAL: GeneralSettings = {
 };
 
 export function App() {
-  const registry = useMemo(() => new ToolRegistry([rogKeyboardTool]), []);
+  const registry = useMemo(
+    () => new ToolRegistry([rogKeyboardTool, razerNagaTool, hyperCapslockTool]),
+    []
+  );
   const [selection, setSelection] = useState<SidebarSelection>({
     kind: 'tool',
     id: rogKeyboardTool.id,
   });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rogState, setRogState] = useState<RogKeyboardSnapshot>(DEFAULT_ROG_STATE);
+  const [nagaState, setNagaState] = useState<NagaSnapshot>(DEFAULT_NAGA_STATE);
+  const [hyperState, setHyperState] = useState<HyperCapslockSnapshot>(DEFAULT_HYPER_STATE);
   const [generalSettings, setGeneralSettings] =
     useState<GeneralSettings>(DEFAULT_GENERAL);
 
@@ -56,21 +92,40 @@ export function App() {
 
   useEffect(() => {
     let active = true;
-    let unlisten: (() => void) | null = null;
+    const unlisteners: Array<() => void> = [];
 
     const bootstrap = async () => {
       try {
-        const [initialRog, initialGeneral] = await Promise.all([
+        const [initialRog, initialNaga, initialHyper, initialGeneral] = await Promise.all([
           xtoolsApi.getRogState(),
+          xtoolsApi.getNagaState(),
+          xtoolsApi.getHyperState(),
           xtoolsApi.getGeneralSettings(),
         ]);
         if (!active) return;
         setRogState(initialRog);
+        setNagaState(initialNaga);
+        setHyperState(initialHyper);
         setGeneralSettings(initialGeneral);
 
-        unlisten = await xtoolsApi.onRogStateChanged((next) => {
-          if (active) setRogState(next);
-        });
+        const [offRog, offNaga, offHyper] = await Promise.all([
+          xtoolsApi.onRogStateChanged((next) => {
+            if (active) setRogState(next);
+          }),
+          xtoolsApi.onNagaStateChanged((next) => {
+            if (active) setNagaState(next);
+          }),
+          xtoolsApi.onHyperStateChanged((next) => {
+            if (active) setHyperState(next);
+          }),
+        ]);
+        if (active) {
+          unlisteners.push(offRog, offNaga, offHyper);
+        } else {
+          offRog();
+          offNaga();
+          offHyper();
+        }
       } catch (err) {
         console.error('Failed to bootstrap XTools state:', err);
       }
@@ -79,7 +134,9 @@ export function App() {
     void bootstrap();
     return () => {
       active = false;
-      if (unlisten) unlisten();
+      for (const unlisten of unlisteners) {
+        unlisten();
+      }
     };
   }, []);
 
@@ -93,6 +150,17 @@ export function App() {
   })();
 
   const isRogPage = selection.kind === 'tool' && selection.id === 'rog-keyboard';
+  const isNagaPage = selection.kind === 'tool' && selection.id === 'razer-naga';
+  const showRefresh = isRogPage || isNagaPage;
+  const isBusy = isRogPage ? rogState.is_busy : isNagaPage ? nagaState.is_busy : false;
+
+  const handleRefresh = () => {
+    if (isRogPage) {
+      void xtoolsApi.refreshRog();
+    } else if (isNagaPage) {
+      void xtoolsApi.refreshNaga();
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#18181d] text-white">
@@ -110,9 +178,9 @@ export function App() {
         <TitleBar
           i18n={i18n}
           title={pageTitle}
-          showRefresh={isRogPage}
-          isBusy={rogState.is_busy}
-          onRefresh={() => void xtoolsApi.refreshRog()}
+          showRefresh={showRefresh}
+          isBusy={isBusy}
+          onRefresh={handleRefresh}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
         />
 
@@ -122,6 +190,10 @@ export function App() {
                 i18n,
                 rogState,
                 onUpdateRogState: setRogState,
+                nagaState,
+                onUpdateNagaState: setNagaState,
+                hyperState,
+                onUpdateHyperState: setHyperState,
               })
             : null}
 

@@ -8,9 +8,18 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WindowEvent};
 
 use core::autostart::AutoStartManager;
 use core::file_log::{self, FileLog};
+use core::keyboard_hook::KeyboardHookHub;
 use core::notifier::WindowsNotifier;
 use core::preferences::PreferencesStore;
-use core::tool::ToolRegistry;
+use core::process_watcher::RunningProcessInfo;
+use core::tool::{ToolRegistry, XTool};
+use core::vk::KeyShortcut;
+use tools::hyper_capslock::config::{ActionConfig, ActionMappingEntry, Trigger};
+use tools::hyper_capslock::service::{
+  HyperCapslockService, HyperCapslockSnapshot, HyperCapslockTool,
+};
+use tools::razer_naga::config::NagaPlateLayout;
+use tools::razer_naga::service::{NagaRecordMode, NagaService, NagaSnapshot, NagaTool};
 use tools::rog_keyboard::service::{
   RogKeyboardService, RogKeyboardSnapshot, RogKeyboardTool, RogSettingsPatch,
 };
@@ -18,11 +27,16 @@ use tray::TrayController;
 
 const LOG: FileLog = FileLog::new("App");
 const ROG_STATE_EVENT: &str = "rog-keyboard://state-changed";
+const NAGA_STATE_EVENT: &str = "razer-naga://state-changed";
+const HYPER_STATE_EVENT: &str = "hyper-capslock://state-changed";
 
 pub struct AppRuntimeState {
   pub prefs: Arc<PreferencesStore>,
   pub autostart: Arc<AutoStartManager>,
+  pub keyboard_hook: Arc<KeyboardHookHub>,
   pub rog_service: Arc<RogKeyboardService>,
+  pub naga_service: Arc<NagaService>,
+  pub hyper_service: Arc<HyperCapslockService>,
   pub tray: Arc<TrayController>,
   pub registry: Arc<ToolRegistry>,
   pub version: String,
@@ -79,6 +93,175 @@ fn rog_update_settings(
 }
 
 #[tauri::command]
+fn hyper_get_state(state: State<'_, Arc<AppRuntimeState>>) -> HyperCapslockSnapshot {
+  state.hyper_service.snapshot()
+}
+
+#[tauri::command]
+fn hyper_set_paused(
+  state: State<'_, Arc<AppRuntimeState>>,
+  paused: bool,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.set_paused(paused)
+}
+
+#[tauri::command]
+fn hyper_set_auto_pause_enabled(
+  state: State<'_, Arc<AppRuntimeState>>,
+  enabled: bool,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.set_auto_pause_enabled(enabled)
+}
+
+#[tauri::command]
+fn hyper_set_auto_pause_notify_sound(
+  state: State<'_, Arc<AppRuntimeState>>,
+  enabled: bool,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.set_auto_pause_notify_sound(enabled)
+}
+
+#[tauri::command]
+fn hyper_add_auto_pause_process(
+  state: State<'_, Arc<AppRuntimeState>>,
+  name: String,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.add_auto_pause_process(name)
+}
+
+#[tauri::command]
+fn hyper_remove_auto_pause_process(
+  state: State<'_, Arc<AppRuntimeState>>,
+  name: String,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.remove_auto_pause_process(name)
+}
+
+#[tauri::command]
+async fn hyper_list_running_processes() -> Vec<RunningProcessInfo> {
+  tauri::async_runtime::spawn_blocking(HyperCapslockService::list_running_processes)
+    .await
+    .unwrap_or_default()
+}
+
+#[tauri::command]
+fn hyper_upsert_mapping(
+  state: State<'_, Arc<AppRuntimeState>>,
+  trigger: Trigger,
+  action: ActionConfig,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.upsert_mapping(trigger, action)
+}
+
+#[tauri::command]
+fn hyper_remove_mapping(
+  state: State<'_, Arc<AppRuntimeState>>,
+  trigger: Trigger,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.remove_mapping(trigger)
+}
+
+#[tauri::command]
+fn hyper_reset_defaults(
+  state: State<'_, Arc<AppRuntimeState>>,
+) -> Result<HyperCapslockSnapshot, String> {
+  state.hyper_service.reset_defaults()
+}
+
+#[tauri::command]
+fn hyper_import_mappings(
+  state: State<'_, Arc<AppRuntimeState>>,
+  mappings_json: String,
+) -> Result<HyperCapslockSnapshot, String> {
+  let mappings: Vec<ActionMappingEntry> = serde_json::from_str(&mappings_json)
+    .map_err(|e| format!("Invalid mappings JSON: {}", e))?;
+  state.hyper_service.import_mappings(mappings)
+}
+
+#[tauri::command]
+fn hyper_export_mappings(state: State<'_, Arc<AppRuntimeState>>) -> Result<String, String> {
+  state.hyper_service.export_mappings_json()
+}
+
+#[tauri::command]
+fn naga_get_state(state: State<'_, Arc<AppRuntimeState>>) -> NagaSnapshot {
+  state.naga_service.snapshot()
+}
+
+#[tauri::command]
+fn naga_refresh(state: State<'_, Arc<AppRuntimeState>>) {
+  state.naga_service.refresh();
+}
+
+#[tauri::command]
+fn naga_set_enabled(
+  state: State<'_, Arc<AppRuntimeState>>,
+  enabled: bool,
+) -> Result<NagaSnapshot, String> {
+  state.naga_service.set_enabled(enabled)
+}
+
+#[tauri::command]
+fn naga_set_plate_layout(
+  state: State<'_, Arc<AppRuntimeState>>,
+  layout: NagaPlateLayout,
+) -> Result<NagaSnapshot, String> {
+  state.naga_service.set_plate_layout(layout)
+}
+
+#[tauri::command]
+fn naga_set_button_shortcut(
+  state: State<'_, Arc<AppRuntimeState>>,
+  button_index: u8,
+  shortcut: Option<KeyShortcut>,
+) -> Result<NagaSnapshot, String> {
+  state
+    .naga_service
+    .set_button_shortcut(button_index, shortcut)
+}
+
+#[tauri::command]
+fn naga_set_button_sentinel(
+  state: State<'_, Arc<AppRuntimeState>>,
+  button_index: u8,
+  sentinel_vk: u16,
+) -> Result<NagaSnapshot, String> {
+  state
+    .naga_service
+    .set_button_sentinel(button_index, sentinel_vk)
+}
+
+#[tauri::command]
+fn naga_set_button_enabled(
+  state: State<'_, Arc<AppRuntimeState>>,
+  button_index: u8,
+  enabled: bool,
+) -> Result<NagaSnapshot, String> {
+  state
+    .naga_service
+    .set_button_enabled(button_index, enabled)
+}
+
+#[tauri::command]
+fn naga_begin_recording(
+  state: State<'_, Arc<AppRuntimeState>>,
+  button_index: u8,
+  mode: NagaRecordMode,
+) -> NagaSnapshot {
+  state.naga_service.begin_recording(button_index, mode)
+}
+
+#[tauri::command]
+fn naga_cancel_recording(state: State<'_, Arc<AppRuntimeState>>) -> NagaSnapshot {
+  state.naga_service.cancel_recording()
+}
+
+#[tauri::command]
+fn naga_clear_captures(state: State<'_, Arc<AppRuntimeState>>) -> NagaSnapshot {
+  state.naga_service.clear_captures()
+}
+
+#[tauri::command]
 fn app_get_general_settings(state: State<'_, Arc<AppRuntimeState>>) -> GeneralSettingsPayload {
   state.build_general_settings()
 }
@@ -100,9 +283,13 @@ fn app_set_language(
   state.prefs.update(|cfg| {
     cfg.language = language;
   })?;
-  let snap = state.rog_service.snapshot();
+  let rog_snap = state.rog_service.snapshot();
+  let naga_snap = state.naga_service.snapshot();
+  let hyper_snap = state.hyper_service.snapshot();
   let is_zh = state.prefs.effective_is_zh();
-  state.tray.refresh_labels(&snap, is_zh);
+  state
+    .tray
+    .refresh_all(&rog_snap, &naga_snap, &hyper_snap, is_zh);
   state.rog_service.notify_language_changed();
   Ok(state.build_general_settings())
 }
@@ -154,33 +341,73 @@ pub fn run() {
       let prefs = Arc::new(PreferencesStore::load());
       let autostart = Arc::new(AutoStartManager::new());
       let notifier = Arc::new(WindowsNotifier::new());
-      let rog_service = RogKeyboardService::new(Arc::clone(&prefs), Arc::clone(&notifier));
-      let rog_tool = Arc::new(RogKeyboardTool::new(Arc::clone(&rog_service)));
-      let registry = Arc::new(ToolRegistry::new(vec![rog_tool]));
+      let keyboard_hook = KeyboardHookHub::new_shared();
 
-      let initial_snap = rog_service.snapshot();
+      let rog_service = RogKeyboardService::new(Arc::clone(&prefs), Arc::clone(&notifier));
+      let naga_service = NagaService::new(Arc::clone(&prefs), Arc::clone(&keyboard_hook));
+      let hyper_service = HyperCapslockService::new(
+        Arc::clone(&prefs),
+        Arc::clone(&keyboard_hook),
+        Arc::clone(&notifier),
+      );
+
+      let tools: Vec<Arc<dyn XTool>> = vec![
+        Arc::new(RogKeyboardTool::new(Arc::clone(&rog_service))),
+        Arc::new(NagaTool::new(Arc::clone(&naga_service))),
+        Arc::new(HyperCapslockTool::new(Arc::clone(&hyper_service))),
+      ];
+      let registry = Arc::new(ToolRegistry::new(tools));
+
+      let initial_rog = rog_service.snapshot();
+      let initial_naga = naga_service.snapshot();
+      let initial_hyper = hyper_service.snapshot();
       let is_zh = prefs.effective_is_zh();
       let tray = TrayController::build(
         app.handle(),
         Arc::clone(&rog_service),
-        &initial_snap,
+        Arc::clone(&naga_service),
+        Arc::clone(&hyper_service),
+        &initial_rog,
+        &initial_naga,
+        &initial_hyper,
         is_zh,
       )?;
 
-      let app_handle: AppHandle = app.handle().clone();
-      let tray_obs = Arc::clone(&tray);
-      let prefs_obs = Arc::clone(&prefs);
+      let app_rog: AppHandle = app.handle().clone();
+      let tray_rog = Arc::clone(&tray);
+      let prefs_rog = Arc::clone(&prefs);
       rog_service.set_observer(move |snap| {
-        let is_zh = prefs_obs.effective_is_zh();
-        tray_obs.refresh_labels(snap, is_zh);
-        let _ = app_handle.emit(ROG_STATE_EVENT, snap);
+        let is_zh = prefs_rog.effective_is_zh();
+        tray_rog.refresh_rog(snap, is_zh);
+        let _ = app_rog.emit(ROG_STATE_EVENT, snap);
+      });
+
+      let app_naga: AppHandle = app.handle().clone();
+      let tray_naga = Arc::clone(&tray);
+      let prefs_naga = Arc::clone(&prefs);
+      naga_service.set_observer(move |snap| {
+        let is_zh = prefs_naga.effective_is_zh();
+        tray_naga.refresh_naga(snap, is_zh);
+        let _ = app_naga.emit(NAGA_STATE_EVENT, snap);
+      });
+
+      let app_hyper: AppHandle = app.handle().clone();
+      let tray_hyper = Arc::clone(&tray);
+      let prefs_hyper = Arc::clone(&prefs);
+      hyper_service.set_observer(move |snap| {
+        let is_zh = prefs_hyper.effective_is_zh();
+        tray_hyper.refresh_hyper(snap, is_zh);
+        let _ = app_hyper.emit(HYPER_STATE_EVENT, snap);
       });
 
       let version = app.package_info().version.to_string();
       let runtime = Arc::new(AppRuntimeState {
         prefs,
         autostart,
+        keyboard_hook,
         rog_service,
+        naga_service,
+        hyper_service,
         tray,
         registry: Arc::clone(&registry),
         version,
@@ -214,6 +441,28 @@ pub fn run() {
       rog_refresh,
       rog_switch_to_windows,
       rog_update_settings,
+      hyper_get_state,
+      hyper_set_paused,
+      hyper_set_auto_pause_enabled,
+      hyper_set_auto_pause_notify_sound,
+      hyper_add_auto_pause_process,
+      hyper_remove_auto_pause_process,
+      hyper_list_running_processes,
+      hyper_upsert_mapping,
+      hyper_remove_mapping,
+      hyper_reset_defaults,
+      hyper_import_mappings,
+      hyper_export_mappings,
+      naga_get_state,
+      naga_refresh,
+      naga_set_enabled,
+      naga_set_plate_layout,
+      naga_set_button_shortcut,
+      naga_set_button_sentinel,
+      naga_set_button_enabled,
+      naga_begin_recording,
+      naga_cancel_recording,
+      naga_clear_captures,
       app_get_general_settings,
       app_set_launch_at_login,
       app_set_language,
@@ -226,6 +475,7 @@ pub fn run() {
     if let RunEvent::Exit = event {
       if let Some(state) = app_handle.try_state::<Arc<AppRuntimeState>>() {
         state.registry.shutdown_all();
+        state.keyboard_hook.stop();
       }
     }
   });

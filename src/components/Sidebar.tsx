@@ -58,23 +58,26 @@ export function Sidebar({
       </div>
 
       {/* Scrollable navigation list */}
-      <nav className="flex-1 space-y-3 overflow-y-auto px-2 py-1">
-        {groups.map((group) => (
-          <div key={group.group} className="space-y-0.5">
-            {group.items.map((tool) => {
-              const target: SidebarSelection = { kind: 'tool', id: tool.id };
-              return (
-                <button
-                  key={tool.id}
-                  type="button"
-                  onClick={() => onSelect(target)}
-                  className={rowClasses(isSelected(target))}
-                >
-                  <SidebarIcon color={tool.color}>{tool.renderIcon(14)}</SidebarIcon>
-                  <span className="truncate">{i18n.t(tool.titleKey)}</span>
-                </button>
-              );
-            })}
+      <nav className="flex-1 space-y-2.5 overflow-y-auto px-2 py-1">
+        {groups.map((group, idx) => (
+          <div key={group.group} className="space-y-2.5">
+            {idx > 0 && <div className="mx-2 border-t border-white/[0.07]" />}
+            <div className="space-y-0.5">
+              {group.items.map((tool) => {
+                const target: SidebarSelection = { kind: 'tool', id: tool.id };
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => onSelect(target)}
+                    className={rowClasses(isSelected(target))}
+                  >
+                    <SidebarIcon color={tool.color}>{tool.renderIcon(14)}</SidebarIcon>
+                    <span className="truncate">{i18n.t(tool.titleKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
 

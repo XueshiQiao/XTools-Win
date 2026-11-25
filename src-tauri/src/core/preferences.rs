@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use std::sync::RwLock;
 
 use super::file_log::FileLog;
+use crate::tools::hyper_capslock::config::HyperCapslockConfig;
+use crate::tools::razer_naga::config::NagaConfig;
 
 const LOG: FileLog = FileLog::new("Preferences");
 
@@ -42,11 +44,15 @@ pub struct AppConfig {
   /// `None` follows system locale; `Some("zh-Hans")` or `Some("en")` overrides it.
   pub language: Option<String>,
   pub rog_keyboard: RogKeyboardConfig,
+  pub hyper_capslock: HyperCapslockConfig,
+  pub razer_naga: NagaConfig,
 }
 
 impl AppConfig {
   pub fn sanitize(&mut self) {
     self.rog_keyboard.sanitize();
+    self.hyper_capslock.sanitize();
+    self.razer_naga.sanitize();
     if let Some(lang) = &self.language {
       let trimmed = lang.trim();
       if trimmed.is_empty() {
