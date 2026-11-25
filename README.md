@@ -16,6 +16,8 @@ Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust
 - **独立托盘电量图标**：键盘在线时自动在通知区域展示专用数字电量图标，支持总电量、充电 / 充满状态与低电量颜色告警；悬浮提示可查看左 / 右分体独立电量及当前档位。
 - **奥创极速网页版与原生通知**：一键直达 [Gear Link](https://gearlink.asus.com/zh-cn) 网页驱动，自动切档结果支持 Windows 原生 Toast 通知（可单独开关提示音）。
 
+![ROG 键盘界面](docs/screenshots/rog-keyboard.png)
+
 ### Razer Naga 鼠标（Razer Naga V3 Pro）
 
 通过 Razer HID 协议直接读写鼠标硬件板载内存，无需常驻 Razer Synapse（雷云）；写入板载内存后的按键映射与灵敏度配置在蓝牙模式、其他电脑或反作弊游戏中均可原生生效，无后台键盘钩子。
@@ -29,6 +31,8 @@ Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust
   - 内置本地按键实测区，可即时验证侧键写入后的硬件输出。
 - **独立托盘电量图标**：鼠标在线时自动显示数字电量托盘图标，悬浮可查看电量百分比、充电状态、当前配置槽位与当前 DPI。
 
+![Razer Naga 鼠标界面](docs/screenshots/razer-naga.png)
+
 ### HyperCapslock
 
 将 `CapsLock` 改造为全局 **Hyper** 修饰键：短按（≤ 200ms）仍正常切换大小写，按住搭配其他按键即可高效光标导航与执行快捷操作。
@@ -41,6 +45,8 @@ Windows 版本的 [XTools](https://github.com/XueshiQiao/XTools)，基于 **Rust
   - **自定义组合快捷键与系统命令**：可按需绑定任意热键或启动外部程序。
 - **规则管理**：支持在界面内新增、编辑、删除映射规则，支持一键恢复默认与 JSON 导入 / 导出。
 - **进程自动暂停（反作弊友好）**：支持维护监控进程列表（手动输入或从当前运行进程中选取）。当列表中任一进程运行时，HyperCapslock 会自动暂停并**完全卸载底层键盘钩子（`WH_KEYBOARD_LL`）**；相关进程全部退出后自动恢复（手动暂停状态不会被自动恢复），可选配 Windows Toast 提示音。
+
+![HyperCapslock 界面](docs/screenshots/hyper-capslock.png)
 
 ### 通用体验与系统托盘
 
