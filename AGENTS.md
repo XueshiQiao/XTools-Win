@@ -64,5 +64,5 @@ src/
 - Use **two spaces** for indentation (Rust and TypeScript).
 - Encapsulate logic into structs/classes where possible.
 - Ask before introducing any new dependency (crate or npm package) and offer options with pros/cons.
-- Do not commit without the user's explicit permission; let the user review first. Follow commit-message best practices.
+- Do not commit without the user's explicit permission; let the user review first. Follow commit-message best practices. Whenever the user asks to "commit" ("提交"), treat commit and push as bound together — always run both `git commit` and `git push`.
 - Keep UI strings bilingual (`ZH_STRINGS` / `EN_STRINGS` in `src/core/i18n.ts`).
